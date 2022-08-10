@@ -94,9 +94,11 @@ def hybridJacobian(q_start, q, sigma):
     return J
 
 # These functions calculate the positional coordinates of the body frame {b_0}, which is attached
-# to the middle link (F point). Execution of bodyFramePosition() is time-consuming; therefore, we use 
-# precalculated values. But if some of the 2SR robot parameters are changed, then, bodyFramePosition() 
+# to the middle link (F point). Execution of bodyFramePosition() is time-consuming; therefore, we use
+# precalculated values. But if some of the 2SR robot parameters are changed, then, bodyFramePosition()
 # must be used to update the matrices in getBodyFrame()
+
+
 def getBodyFrame(r, phi, k, k0, seg):
 
     if seg == 1:
@@ -113,12 +115,12 @@ def getBodyFrame(r, phi, k, k0, seg):
 
 def bodyFramePosition(flag):
 
-    x = sym.Symbol('x') # 2SRR x coordinate
-    y = sym.Symbol('y') # 2SRR y coordinate
-    phi = sym.Symbol(r'\phi') # 2SRR orientation
-    k = sym.Symbol('k') # current curvature
-    k0 = sym.Symbol('k\'') # initial curvature
-    r = sym.Symbol('r') # log spiral radius
+    x = sym.Symbol('x')  # 2SRR x coordinate
+    y = sym.Symbol('y')  # 2SRR y coordinate
+    phi = sym.Symbol(r'\phi')  # 2SRR orientation
+    k = sym.Symbol('k')  # current curvature
+    k0 = sym.Symbol('k\'')  # initial curvature
+    r = sym.Symbol('r')  # log spiral radius
 
     # Angle of the 1st log spiral
     th = k * globals_.L_VSS / globals_.M[0]

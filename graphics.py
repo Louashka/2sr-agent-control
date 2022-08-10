@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FFMpegWriter
 from matplotlib.patches import Rectangle
 import numpy as np
 import globals_
@@ -11,6 +12,9 @@ fig, ax = plt.subplots()
 q_list = []
 q_target = []
 s_array = []
+
+x_range = 0
+y_range = 0
 
 link = Rectangle((0, 0), 0, 0, fc='y')
 arc1, = ax.plot([], [], lw=2, color="blue")
@@ -25,7 +29,7 @@ target_arc2, = ax.plot([], [], lw=1, color="blue", alpha=0.5)
 
 
 def init():
-    global ax
+    global ax, x_range, y_range
 
     x_range, y_range = defineRange()
     ax.set_xlim(x_range)
@@ -114,7 +118,8 @@ def update(i):
 
     stiffness_text.set_text(
         "s1: " + str(s_array[i][0]) + ", s2: " + str(s_array[i][1]))
-    stiffness_text.set_position((0.05, 0.1))
+    stiffness_text.set_position(
+        (x_range[1] - (x_range[1] - x_range[0]) / 3.5, y_range[1] - (y_range[1] - y_range[0]) / 15))
 
     if q_target:
 
@@ -149,4 +154,9 @@ def plotMotion(q, s, frames, q_t=[]):
 
     anim = FuncAnimation(fig, update, frames,
                          init_func=init, interval=1, repeat=True)
+
+    # Save animation
+    mywriter = FFMpegWriter(fps=30)
+    anim.save('experiment2.mp4', writer=mywriter)
+
     plt.show()

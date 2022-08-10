@@ -1,9 +1,11 @@
 import serial
+import time
 import numpy as np
 import kinematics
 import graphics
 import random as rnd
 from pynput import keyboard
+import globals_
 
 
 class Controller:
@@ -19,14 +21,15 @@ class Controller:
         # Initialize a sequence of VSB stiffness values
         s_list = []
         # 2SRR always starts from the rigid state
-        # s_list.append(s[0])
+        s_list.append(s[0])
         # Initialize the number of stiffness transitions
-        switch_counter = 0
+        switch_flags = []
+        switch_flags.append(False)
 
         # Initialize a trajectory
         q_list = []
         q = q_0  # current configuration
-        # q_list.append(q)
+        q_list.append(q)
 
         # Initialize a sequence of velocity commands
         v_list = []
@@ -41,7 +44,7 @@ class Controller:
 
         t = 0.1  # current time
         # feedback gain
-        velocity_coeff = np.ones((5,), dtype=int)
+        velocity_coeff = 1 * np.ones((5,), dtype=int)
         # Index of the current stiffness configuration
         current_i = None
 
@@ -73,48 +76,110 @@ class Controller:
             if min_i != current_i and current_i is not None:
                 if delta_q_[current_i] > 10**(-17):
                     min_i = current_i
-                else:
-                    flag = True
 
             current_i = min_i  # update current stiffness
             q = q_[current_i]  # update current configuration
             dist = np.linalg.norm(q - q_t)  # update error
 
+            if s[current_i] != s_list[-1]:
+                flag = True
+
             if (delta_q_[current_i] > 10 ** (-5)):
                 q_list.append(q)
                 v_list.append(v_[current_i])
                 s_list.append(s[current_i])
-
-                if flag:
-                    switch_counter += 1
+                switch_flags.append(flag)
 
             t += dt  # increment time
 
-        return q_list, v_list, s_list, switch_counter
+        return q_list, v_list, s_list, switch_flags
 
-    def wheelDrive(self, v, s):
-        w = [0, 0, 0, 0]
-        return w
+    def wheelDrive(self, q_list, v_list, s_list):
 
-    def sendCommands(self, wheels_v_list, s_list):
-        return
+        w_list = []
 
-    def sendData(self, q_0, commands):
+        for q, v, s in zip(q_list, v_list, s_list):
+
+            flag_soft = int(s[0] or s[1])
+            flag_rigid = int(not (s[0] or s[1]))
+
+            k = [q[3], q[3], q[4], q[4]]
+
+            V_ = np.zeros((4, 5))
+            for i in range(4):
+                b0_q_w = self.getWheelPosition(i, k[i], q[2])
+                tau = b0_q_w[0] * np.sin(b0_q_w[2]) - \
+                    b0_q_w[1] * np.cos(b0_q_w[2])
+                V_[i, :] = [flag_soft * int(i == 0), -flag_soft * int(
+                    i == 2), flag_rigid * np.cos(b0_q_w[2]), flag_rigid * np.sin(b0_q_w[2]), flag_rigid * tau]
+
+            V = 1 / globals_.WHEEL_R * V_
+
+            # print(V)
+
+            w = np.matmul(V, v)
+
+            w_list.append(w.round(3))
+
+        return w_list
+
+    def getWheelPosition(self, i, k, phi):
+
+        flag = 1 if i < 2 else -1
+        alpha = k * globals_.L_VSS
+
+        if k == 0:
+            b0_x_bj = globals_.L_LINK / 2 + globals_.L_VSS
+            b0_y_bj = 0
+        else:
+            b0_x_bj = globals_.L_LINK / 2 + np.sin(alpha) / k
+            b0_y_bj = (1 - np.cos(alpha)) / k
+
+        b0_T_bj = np.array([[np.cos(alpha), flag * np.sin(alpha), -flag * b0_x_bj],
+                            [-flag * np.sin(alpha), np.cos(alpha), b0_y_bj],
+                            [0, 0, 1]])
+
+        b0_q_w = np.matmul(b0_T_bj, np.append(
+            globals_.bj_Q_w, [[1, 1, 1, 1]], axis=0)[:, i])
+
+        b0_q_w = np.append(b0_q_w[:-1], phi - flag * alpha + globals_.BETA[i])
+
+        return b0_q_w
+
+    def moveRobot(self, w_list, s_list, switch_flags):
+
+        for w, s, flag in zip(w_list, s_list, switch_flags):
+            commands = w.tolist() + s
+
+            if (flag):
+                self.sendData([0, 0, 0, 0] + s)
+                print([0, 0, 0, 0] + s)
+                time.sleep(30)
+
+            for i in range(2):
+                self.sendData(commands)
+                time.sleep(0.1)
+
+            print(commands)
+
+        self.sendData([0, 0, 0, 0, 0, 0])
+
+    def sendData(self, commands):
 
         msg = "s"
 
         for command in commands:
             msg += str(command) + '\n'
 
-        # print(msg)
+        # print(msg.encode())
 
         self.serial_port.write(msg.encode())
 
-    def openConnection():
+    def openConnection(self):
         if self.serial_port.isOpen() is False:
             self.serial_port.open()
 
-    def closeConnection():
+    def closeConnection(self):
         if self.serial_port.isOpen() is True:
             self.serial_port.close()
 
@@ -131,13 +196,59 @@ if __name__ == "__main__":
 
     portName = "COM4"
     mainController = Controller(portName)
-    mainController.openConnection()
+    # mainController.openConnection()
+
+    # SIMULATION PARAMETERS
+
+    sim_time = 15  # simulation time
+    dt = 0.1  # step size
+    t = np.arange(dt, sim_time + dt, dt)  # span
+    frames = len(t)  # number of frames
+
+    # Initial configuration
+    q_start = [0, 0, 0, 0, 0]
+
+    # FORWARD KINEMATICS
+
+    # # Stiffness of the VS segments
+    # sigma = [rnd.randint(0, 1), rnd.randint(0, 1)]
+    # print("Stiffness: ", sigma)
+    # # Input velocity commands
+    # v = [rnd.uniform(-0.007, 0.007), rnd.uniform(-0.007, 0.007),
+    #      rnd.uniform(-0.03, 0.03), rnd.uniform(-0.03, 0.03), rnd.uniform(-0.1, 0.1)]
+    # print("Velocity: ", v)
+
+    # sigma = [1, 1]
+    # v = [0.00, 0.003, 0.0, 0.00, 0]
+
+    sigma = [1, 1]
+    v = [0.0055, 0.0035, 0.0, 0.00, 0]
+
+    # sigma = [0, 1]
+    # v = [-0.0021322214883674933, 0.0038127879372345154, -
+    #      0.00134946847859305, -0.0010331590290957905, -0.026437336778516826]
+
+    # Generate a trajectory by an FK model
+    q_list = kinematics.fk(q_start, sigma, v, sim_time)
+
+    # MOTION PLANNER (STIFFNESS PLANNER + INVERSE KINEMATICS)
+
+    # We take the last configuration of an FK trajectory
+    # as a target configuration
+    q_target = q_list[-1].tolist()
 
     config = mainController.motionPlanner(q_start, q_target)
-    wheels_v_list = mainController.wheelDrive(config[1], config[2])
-    mainController.sendCommands(wheels_v_list, config[2])
+    w_list = mainController.wheelDrive(config[0], config[1], config[2])
+    print(config[2])
 
-    mainController.closeConnection()
+    frames = len(config[0])
+
+    # Animation of the 2SRR motion towards the target
+    graphics.plotMotion(config[0], config[2], frames, q_t=q_target)
+
+    # mainController.moveRobot(w_list, config[2], config[3])
+
+    # mainController.closeConnection()
 
     # msg_start = [4.5, 0, 0, 0, 0, 0]
     # msg_stop = [0, 0, 0, 0, 0, 0]
