@@ -6,6 +6,9 @@ import numpy as np
 import math
 # from PointsDetector import DetectPoints, arucoDetector
 
+# segments
+l = 0.04    # 40 mm in meter
+
 # Camera
 fx = 461.84448242
 fy = 443.28289795
@@ -173,7 +176,7 @@ def cal_curves(rvecs):
         beta = math.atan2(-r31, math.sqrt(math.pow(r11, 2) + math.pow(r21, 2)))
         alpha = math.atan2(r21 / math.cos(beta), r11 / math.cos(beta))
         angles[i] = alpha
-    print("angles", angles*(180/3.14))
+    # print("angles", angles*(180/3.14))
     angle_center = angles[0]
     angle_A = angles[1]
     angle_B = angles[2]
@@ -183,7 +186,14 @@ def cal_curves(rvecs):
     curve_A = angle_center - angle_A
     curve_B = angle_B - angle_center
     # result is in radian
-    return curve_A, curve_B
+    Ka, Kb = cal_k(curve_A, curve_B)
+    return  Ka, Kb
+
+
+def cal_k(curve_A, curve_B):
+    Ka = curve_A / l
+    Kb = curve_B / l
+    return Ka, Kb
 
 
 while True:
@@ -195,12 +205,10 @@ while True:
     if flag == True:
         # About the returned value:
         # center is the position of the center point of the connector,
-        # curve_A / curve_B is the curvature of two segments,
-        # the unit of curvature is radian, can time (180/3.14) to transfer it into degree
+        # k = curve / l, which curve = theta - theta0, and l is the length of segments in meter
         center, rvecs = DetectArucoPose()
-        curve_A, curve_B = cal_curves(rvecs)
+        Ka, Kb = cal_curves(rvecs)
         # print("Center: ", center)
-        # print("curve of segment A: ", curve_A*(180 / 3.14), "curve of segment B:", curve_B*(180 / 3.14))
     else:
         print("No Code")
 
