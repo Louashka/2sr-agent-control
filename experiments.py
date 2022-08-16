@@ -4,16 +4,19 @@ from datetime import datetime
 from pynput import keyboard
 from threading import Thread
 import mainController
+import UnitStability
 
 expData = []
-
 
 def unitsStabilityExpLoop():
     while True:
         # start the motion
+        centers, rotationVec = UnitStability.DetectArucoPose()
+
         timeStamp = datetime.now().strftime("%H:%M:%S")
-        expData.append([timeStamp, 0, 0])
-        time.sleep(0.05)
+        expData.append([timeStamp, centers[2, 0], centers[2, 1],
+                        centers[1, 0], centers[1, 1]])
+        # time.sleep(0.05)
 
 
 def on_press(key):
@@ -21,7 +24,7 @@ def on_press(key):
     if key.char == "s":
         print('Stop')
 
-        columnNames = ["time stamp", "LU1 position", "LU2 position"]
+        columnNames = ["time stamp", "LU1 x", "LU1 y", "LU2 x", "LU2 y"]
         df = pd.DataFrame(expData, columns=columnNames)
         print("save")
         df.to_csv('ExpData/unitsStabilityExp.csv')
