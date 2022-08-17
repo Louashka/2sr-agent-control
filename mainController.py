@@ -11,8 +11,8 @@ import globals_
 class Controller:
 
     def __init__(self, portName):
-        # self.serial_port = serial.Serial(portName, 115200)
-        self.serial_port = None
+        self.serial_port = serial.Serial(portName, 115200)
+        # self.serial_port = None
 
     def motionPlanner(self, q_0, q_target):
         dt = 0.1  # step size
@@ -154,15 +154,15 @@ class Controller:
             if (flag):
                 self.sendData([0, 0, 0, 0] + s)
                 print([0, 0, 0, 0] + s)
-                time.sleep(30)
+                time.sleep(100)
 
             for i in range(2):
                 self.sendData(commands)
-                time.sleep(0.1)
+                time.sleep(0.01)
 
             print(commands)
 
-        self.sendData([0, 0, 0, 0, 0, 0])
+        # self.sendData([0, 0, 0, 0, 0, 0])
 
     def sendData(self, commands):
 
@@ -192,66 +192,66 @@ class Controller:
             mainController.sendData([0, 0, 0, 0, 0, 0])
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    portName = "COM4"
-    mainController = Controller(portName)
-    # mainController.openConnection()
+#     portName = "COM4"
+#     mainController = Controller(portName)
+#     # mainController.openConnection()
 
-    # SIMULATION PARAMETERS
+#     # SIMULATION PARAMETERS
 
-    sim_time = 15  # simulation time
-    dt = 0.1  # step size
-    t = np.arange(dt, sim_time + dt, dt)  # span
-    frames = len(t)  # number of frames
+#     sim_time = 15  # simulation time
+#     dt = 0.1  # step size
+#     t = np.arange(dt, sim_time + dt, dt)  # span
+#     frames = len(t)  # number of frames
 
-    # Initial configuration
-    q_start = [0, 0, 0, 0, 0]
+#     # Initial configuration
+#     q_start = [0, 0, 0, 0, 0]
 
-    # FORWARD KINEMATICS
+#     # FORWARD KINEMATICS
 
-    # # Stiffness of the VS segments
-    # sigma = [rnd.randint(0, 1), rnd.randint(0, 1)]
-    # print("Stiffness: ", sigma)
-    # # Input velocity commands
-    # v = [rnd.uniform(-0.007, 0.007), rnd.uniform(-0.007, 0.007),
-    #      rnd.uniform(-0.03, 0.03), rnd.uniform(-0.03, 0.03), rnd.uniform(-0.1, 0.1)]
-    # print("Velocity: ", v)
+#     # # Stiffness of the VS segments
+#     # sigma = [rnd.randint(0, 1), rnd.randint(0, 1)]
+#     # print("Stiffness: ", sigma)
+#     # # Input velocity commands
+#     # v = [rnd.uniform(-0.007, 0.007), rnd.uniform(-0.007, 0.007),
+#     #      rnd.uniform(-0.03, 0.03), rnd.uniform(-0.03, 0.03), rnd.uniform(-0.1, 0.1)]
+#     # print("Velocity: ", v)
 
-    # sigma = [1, 1]
-    # v = [0.00, 0.003, 0.0, 0.00, 0]
+#     # sigma = [1, 1]
+#     # v = [0.00, 0.003, 0.0, 0.00, 0]
 
-    sigma = [1, 1]
-    v = [0.0055, 0.0035, 0.0, 0.00, 0]
+#     sigma = [1, 1]
+#     v = [0.0055, 0.0035, 0.0, 0.00, 0]
 
-    # sigma = [0, 1]
-    # v = [-0.0021322214883674933, 0.0038127879372345154, -
-    #      0.00134946847859305, -0.0010331590290957905, -0.026437336778516826]
+#     # sigma = [0, 1]
+#     # v = [-0.0021322214883674933, 0.0038127879372345154, -
+#     #      0.00134946847859305, -0.0010331590290957905, -0.026437336778516826]
 
-    # Generate a trajectory by an FK model
-    q_list = kinematics.fk(q_start, sigma, v, sim_time)
+#     # Generate a trajectory by an FK model
+#     q_list = kinematics.fk(q_start, sigma, v, sim_time)
 
-    # MOTION PLANNER (STIFFNESS PLANNER + INVERSE KINEMATICS)
+#     # MOTION PLANNER (STIFFNESS PLANNER + INVERSE KINEMATICS)
 
-    # We take the last configuration of an FK trajectory
-    # as a target configuration
-    q_target = q_list[-1].tolist()
+#     # We take the last configuration of an FK trajectory
+#     # as a target configuration
+#     q_target = q_list[-1].tolist()
 
-    config = mainController.motionPlanner(q_start, q_target)
-    w_list = mainController.wheelDrive(config[0], config[1], config[2])
-    print(config[2])
+#     config = mainController.motionPlanner(q_start, q_target)
+#     w_list = mainController.wheelDrive(config[0], config[1], config[2])
+#     print(config[2])
 
-    frames = len(config[0])
+#     frames = len(config[0])
 
-    # Animation of the 2SRR motion towards the target
-    graphics.plotMotion(config[0], config[2], frames, q_t=q_target)
+#     # Animation of the 2SRR motion towards the target
+#     graphics.plotMotion(config[0], config[2], frames, q_t=q_target)
 
-    # mainController.moveRobot(w_list, config[2], config[3])
+#     # mainController.moveRobot(w_list, config[2], config[3])
 
-    # mainController.closeConnection()
+#     # mainController.closeConnection()
 
-    # msg_start = [4.5, 0, 0, 0, 0, 0]
-    # msg_stop = [0, 0, 0, 0, 0, 0]
+#     # msg_start = [4.5, 0, 0, 0, 0, 0]
+#     # msg_stop = [0, 0, 0, 0, 0, 0]
 
-    # with keyboard.Listener(on_press=mainController.show) as listener:
-    #     listener.join()
+#     # with keyboard.Listener(on_press=mainController.show) as listener:
+#     #     listener.join()
