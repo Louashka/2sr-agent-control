@@ -154,7 +154,7 @@ class Controller:
             if (flag):
                 self.sendData([0, 0, 0, 0] + s)
                 print([0, 0, 0, 0] + s)
-                time.sleep(100)
+                time.sleep(30)
 
             for i in range(2):
                 self.sendData(commands)

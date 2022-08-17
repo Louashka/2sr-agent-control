@@ -8,7 +8,7 @@ import mainController
 import LUs
 
 expData = []
-w = np.array([[2, 0, 0, 0]])
+w = np.array([[10, 0, 0, 0]])
 s = [[1, 0]]
 flag = [False]
 
@@ -25,7 +25,7 @@ def unitsStabilityExpLoop():
         # start the motion
         centers, rotation = lu.DetectArucoPose()
         timeStamp = datetime.now().strftime("%H:%M:%S")
-        expData.append([timeStamp, centers[2, 0], centers[2, 1], rotation[2]
+        expData.append([timeStamp, centers[2, 0], centers[2, 1], rotation[2],
                         centers[1, 0], centers[1, 1], rotation[1]])
 
         mainController.moveRobot(w, s, flag)
@@ -42,6 +42,7 @@ def on_press(key):
         w = np.array([[0, 0, 0, 0]])
         s = [[0, 0]]
         flag = [True]
+        mainController.moveRobot(w, s, flag)
 
         columnNames = ["time stamp", "LU1 x", "LU1 y",
                        "LU1 th", "LU2 x", "LU2 y", "LU2 th"]

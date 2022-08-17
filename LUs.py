@@ -34,6 +34,7 @@ class LU:
 
     def stop(self):
         self.pipeline.stop()
+        cv2.destroyAllWindows()
 
     def show_image(self):
         frames = self.pipeline.wait_for_frames()
@@ -84,6 +85,26 @@ class LU:
             return center, rvecs
             print("realsense", realsense.center)
 
+    def cal_angles(self, rvecs):
+        angles = np.float32([0., 0., 0.])
+        # Apply Rodrignes's Formula to transfer rotation vectors into rotation matrix
+        for i in range(len(rvecs)):
+            rotationMatrix = cv2.Rodrigues(rvecs[i])
+            rotationMatrix = rotationMatrix[0]
+            rotationMatrix = np.transpose(rotationMatrix)
+            r31 = rotationMatrix[2][0]
+            r11 = rotationMatrix[0][0]
+            r21 = rotationMatrix[1][0]
+            beta = math.atan2(-r31, math.sqrt(math.pow(r11, 2) + math.pow(r21, 2)))
+            alpha = math.atan2(r21 / math.cos(beta), r11 / math.cos(beta))
+            angles[i] = alpha
+        # print("angles", angles*(180/3.14))
+        angle_center = angles[0]
+        angle_A = angles[1]
+        angle_B = angles[2]
+        angles = angles * (180 / 3.14)
+        return angles
+
     def DetectArucoPose(self):
         frames = self.pipeline.wait_for_frames()
         # aligned_frames = align.process(frames)
@@ -115,16 +136,17 @@ class LU:
                 # print("rvec[", i, ",: , ：]: ", rvec[i, :, :])
             cv2.imshow("arucoDetector", frame)
             centers, rotationVec = self.cal_Points(ids, corners, rvec, tvec)
-            return centers, rotationVec
+            angles = self.cal_angles(rotationVec)
+            return centers, angles
 
 
-lu = LU()
-lu.start()
-while True:
-    key = cv2.waitKey(1)
-    if key & 0xFF == ord('q') or key == 27:
-        lu.stop()
-        break
-    centers, rvecs = lu.DetectArucoPose()
-    print("centers", centers)
-    print("rvecs", rvecs)
+# lu = LU()
+# lu.start()
+# while True:
+#     key = cv2.waitKey(1)
+#     if key & 0xFF == ord('q') or key == 27:
+#         lu.stop()
+#         break
+#     centers, angles= lu.DetectArucoPose()
+#     print("centers", centers)
+#     print("angles", angles)
