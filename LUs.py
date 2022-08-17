@@ -118,13 +118,13 @@ class LU:
             return centers, rotationVec
 
 
-# lu = LU()
-# lu.start()
-# while True:
-#     key = cv2.waitKey(1)
-#     if key & 0xFF == ord('q') or key == 27:
-#         lu.stop()
-#         break
-#     centers, rvecs = lu.DetectArucoPose()
-#     print("centers", centers)
-#     print("rvecs", rvecs)
+lu = LU()
+lu.start()
+while True:
+    key = cv2.waitKey(1)
+    if key & 0xFF == ord('q') or key == 27:
+        lu.stop()
+        break
+    centers, rvecs = lu.DetectArucoPose()
+    print("centers", centers)
+    print("rvecs", rvecs)

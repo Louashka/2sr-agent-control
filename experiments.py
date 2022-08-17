@@ -23,10 +23,10 @@ mainController.moveRobot(w, s, [True])
 def unitsStabilityExpLoop():
     while True:
         # start the motion
-        centers, rotationVec = lu.DetectArucoPose()
+        centers, rotation = lu.DetectArucoPose()
         timeStamp = datetime.now().strftime("%H:%M:%S")
-        expData.append([timeStamp, centers[2, 0], centers[2, 1],
-                        centers[1, 0], centers[1, 1]])
+        expData.append([timeStamp, centers[2, 0], centers[2, 1], rotation[2]
+                        centers[1, 0], centers[1, 1], rotation[1]])
 
         mainController.moveRobot(w, s, flag)
 
@@ -43,7 +43,8 @@ def on_press(key):
         s = [[0, 0]]
         flag = [True]
 
-        columnNames = ["time stamp", "LU1 x", "LU1 y", "LU2 x", "LU2 y"]
+        columnNames = ["time stamp", "LU1 x", "LU1 y",
+                       "LU1 th", "LU2 x", "LU2 y", "LU2 th"]
         df = pd.DataFrame(expData, columns=columnNames)
         print("save")
         df.to_csv('ExpData/unitsStabilityExp.csv')
