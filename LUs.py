@@ -34,6 +34,7 @@ class LU:
 
     def stop(self):
         self.pipeline.stop()
+        cv2.destroyAllWindows()
 
     def show_image(self):
         frames = self.pipeline.wait_for_frames()
@@ -120,11 +121,11 @@ class LU:
 
 lu = LU()
 lu.start()
-while True:
-    key = cv2.waitKey(1)
-    if key & 0xFF == ord('q') or key == 27:
-        lu.stop()
-        break
-    centers, rvecs = lu.DetectArucoPose()
-    print("centers", centers)
-    print("rvecs", rvecs)
+# while True:
+#     key = cv2.waitKey(1)
+#     if key & 0xFF == ord('q') or key == 27:
+#         lu.stop()
+#         break
+#     centers, rvecs = lu.DetectArucoPose()
+#     print("centers", centers)
+#     print("rvecs", rvecs)

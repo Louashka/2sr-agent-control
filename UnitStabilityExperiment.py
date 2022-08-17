@@ -28,7 +28,6 @@ def unitsStabilityExpLoop():
 def on_press(key):
     if key.char == "s":
         print('Stop')
-        lu.stop()
         columnNames = ["time stamp", "LU1 x", "LU1 y", "LU2 x", "LU2 y"]
         df = pd.DataFrame(expData, columns=columnNames)
         print("save")
@@ -52,3 +51,4 @@ if __name__ == "__main__":
 
     # mainController.closeConnection()
 
+lu.stop()
