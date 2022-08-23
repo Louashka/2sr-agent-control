@@ -14,25 +14,10 @@ class Controller:
         self.serial_port = serial.Serial(portName, 115200)
         # self.serial_port = None
 
-    def motionPlanner(self, q_0, q_target):
+    def motionPlanner(self, q, q_target):
         dt = 0.1  # step size
         # A set of possible stiffness configurations
         s = [[0, 0], [0, 1], [1, 0], [1, 1]]
-        # Initialize a sequence of VSB stiffness values
-        s_list = []
-        # 2SRR always starts from the rigid state
-        s_list.append(s[0])
-        # Initialize the number of stiffness transitions
-        switch_flags = []
-        switch_flags.append(False)
-
-        # Initialize a trajectory
-        q_list = []
-        q = q_0  # current configuration
-        q_list.append(q)
-
-        # Initialize a sequence of velocity commands
-        v_list = []
 
         # A set of possible configurations and velocities
         q_ = [None] * len(s)
@@ -48,80 +33,66 @@ class Controller:
         # Index of the current stiffness configuration
         current_i = None
 
-        while dist > 0:
+        flag = False  # indicates whether VSB stiffness has changed
 
-            flag = False  # indicates whether VSB stiffness has changed
+        # INVERSE KINEMATICS
 
-            # INVERSE KINEMATICS
+        q_tilda = velocity_coeff * (q_t - q) * t
+        for i in range(len(s)):
+            # Jacobian matrix
+            J = kinematics.hybridJacobian(q_0, q, s[i])
+            # velocity input commands
+            v_[i] = np.matmul(np.linalg.pinv(J), q_tilda)
+            q_dot = np.matmul(J, v_[i])
+            q_[i] = q + (1 - np.exp(-1 * t)) * q_dot * dt
 
-            q_tilda = velocity_coeff * (q_t - q) * t
-            for i in range(len(s)):
-                # Jacobian matrix
-                J = kinematics.hybridJacobian(q_0, q, s[i])
-                # velocity input commands
-                v_[i] = np.matmul(np.linalg.pinv(J), q_tilda)
-                q_dot = np.matmul(J, v_[i])
-                q_[i] = q + (1 - np.exp(-1 * t)) * q_dot * dt
+        # Determine the stiffness configuration that promotes
+        # faster approach to the target
+        dist_ = np.linalg.norm(q_ - q_t, axis=1)
+        min_i = np.argmin(dist_)
 
-            # Determine the stiffness configuration that promotes
-            # faster approach to the target
-            dist_ = np.linalg.norm(q_ - q_t, axis=1)
-            min_i = np.argmin(dist_)
+        # The extent of the configuration change
+        delta_q_ = np.linalg.norm(q - np.array(q_), axis=1)
 
-            # The extent of the configuration change
-            delta_q_ = np.linalg.norm(q - np.array(q_), axis=1)
+        # Stiffness transition is committed only if the previous
+        # stiffness configuration does not promote further motion
+        if min_i != current_i and current_i is not None:
+            if delta_q_[current_i] > 10**(-17):
+                min_i = current_i
 
-            # Stiffness transition is committed only if the previous
-            # stiffness configuration does not promote further motion
-            if min_i != current_i and current_i is not None:
-                if delta_q_[current_i] > 10**(-17):
-                    min_i = current_i
+        current_i = min_i  # update current stiffness
+        q_new = q_[current_i]  # update current configuration
+        v_new = v_[current_i]
+        s_new = s[current_i]
+        dist = np.linalg.norm(q_new - q_t)  # update error
 
-            current_i = min_i  # update current stiffness
-            q = q_[current_i]  # update current configuration
-            dist = np.linalg.norm(q - q_t)  # update error
+        if s_new != s_list[-1]:
+            flag = True
 
-            if s[current_i] != s_list[-1]:
-                flag = True
+        if (delta_q_[current_i] < 10 ** (-5)):
+            q_new, v_new, s_new, flag = motionPlanner(self, q_new, q_target)
 
-            if (delta_q_[current_i] > 10 ** (-5)):
-                q_list.append(q)
-                v_list.append(v_[current_i])
-                s_list.append(s[current_i])
-                switch_flags.append(flag)
+        return q_new, v_new, s_new, flag
 
-            t += dt  # increment time
+    def wheelDrive(self, q, v, s):
 
-        return q_list, v_list, s_list, switch_flags
+        flag_soft = int(s[0] or s[1])
+        flag_rigid = int(not (s[0] or s[1]))
 
-    def wheelDrive(self, q_list, v_list, s_list):
+        k = [q[3], q[3], q[4], q[4]]
 
-        w_list = []
+        V_ = np.zeros((4, 5))
+        for i in range(4):
+            b0_q_w = self.getWheelPosition(i, k[i], q[2])
+            tau = b0_q_w[0] * np.sin(b0_q_w[2]) - \
+                b0_q_w[1] * np.cos(b0_q_w[2])
+            V_[i, :] = [flag_soft * int(i == 0), -flag_soft * int(
+                i == 2), flag_rigid * np.cos(b0_q_w[2]), flag_rigid * np.sin(b0_q_w[2]), flag_rigid * tau]
 
-        for q, v, s in zip(q_list, v_list, s_list):
+        V = 1 / globals_.WHEEL_R * V_
+        w = np.matmul(V, v)
 
-            flag_soft = int(s[0] or s[1])
-            flag_rigid = int(not (s[0] or s[1]))
-
-            k = [q[3], q[3], q[4], q[4]]
-
-            V_ = np.zeros((4, 5))
-            for i in range(4):
-                b0_q_w = self.getWheelPosition(i, k[i], q[2])
-                tau = b0_q_w[0] * np.sin(b0_q_w[2]) - \
-                    b0_q_w[1] * np.cos(b0_q_w[2])
-                V_[i, :] = [flag_soft * int(i == 0), -flag_soft * int(
-                    i == 2), flag_rigid * np.cos(b0_q_w[2]), flag_rigid * np.sin(b0_q_w[2]), flag_rigid * tau]
-
-            V = 1 / globals_.WHEEL_R * V_
-
-            # print(V)
-
-            w = np.matmul(V, v)
-
-            w_list.append(w.round(3))
-
-        return w_list
+        return w.round(3)
 
     def getWheelPosition(self, i, k, phi):
 
@@ -146,23 +117,20 @@ class Controller:
 
         return b0_q_w
 
-    def moveRobot(self, w_list, s_list, switch_flags):
+    def moveRobot(self, w, s, flag):
 
-        for w, s, flag in zip(w_list, s_list, switch_flags):
-            commands = w.tolist() + s
+        commands = w.tolist() + s
 
-            if (flag):
-                self.sendData([0, 0, 0, 0] + s)
-                print([0, 0, 0, 0] + s)
-                time.sleep(30)
+        if (flag):
+            self.sendData([0, 0, 0, 0] + s)
+            print([0, 0, 0, 0] + s)
+            time.sleep(90)
 
-            for i in range(2):
-                self.sendData(commands)
-                time.sleep(0.01)
+        for i in range(2):
+            self.sendData(commands)
+            time.sleep(0.01)
 
-            print(commands)
-
-        # self.sendData([0, 0, 0, 0, 0, 0])
+        print(commands)
 
     def sendData(self, commands):
 
