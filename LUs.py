@@ -1,3 +1,4 @@
+import numpy
 import pyrealsense2 as rs
 import cv2
 import cv2.aruco as aruco
@@ -103,7 +104,15 @@ class LU:
         angle_A = angles[1]
         angle_B = angles[2]
         angles = angles * (180 / 3.14)
-        return angles
+
+        # for the curve, if the edge code's angle is lager than center, then the curve is negative;
+        # if the edge code's angle is smaller than center, then the curve is positive
+        curve_A = angle_center - angle_A
+        curve_B = angle_B - angle_center
+        # result is in radian
+        Ka = curve_A / LU.l
+        Kb = curve_B / LU.l
+        return Ka, Kb, angle_center
 
     def DetectArucoPose(self):
         frames = self.pipeline.wait_for_frames()
@@ -136,17 +145,26 @@ class LU:
                 # print("rvec[", i, ",: , ：]: ", rvec[i, :, :])
             cv2.imshow("arucoDetector", frame)
             centers, rotationVec = self.cal_Points(ids, corners, rvec, tvec)
-            angles = self.cal_angles(rotationVec)
-            return centers, angles
+            Ka, Kb, angle_center = self.cal_angles(rotationVec)
+            return centers, angle_center, Ka, Kb
+
+    def getCurrentConfig(self):
+        qc = numpy.array([0., 0., 0., 0., 0.])
+        centers, angle, Ka, Kb = self.DetectArucoPose()
+        qc[0] = centers[0][0]
+        qc[1] = centers[0][1]
+        qc[2] = angle
+        qc[3] = Ka
+        qc[4] = Kb
+        return qc
 
 
-# lu = LU()
-# lu.start()
-# while True:
-#     key = cv2.waitKey(1)
-#     if key & 0xFF == ord('q') or key == 27:
-#         lu.stop()
-#         break
-#     centers, angles= lu.DetectArucoPose()
-#     print("centers", centers)
-#     print("angles", angles)
+lu = LU()
+lu.start()
+while True:
+    key = cv2.waitKey(1)
+    if key & 0xFF == ord('q') or key == 27:
+        lu.stop()
+        break
+    qc = lu.getCurrentConfig()
+    print("qc", qc)
