@@ -16,8 +16,8 @@ lu = LUs.LU()
 lu.start()
 
 q_current = lu.getCurrentConfig()
-q_target = []
-
+q_target = [282, 274, -2.00870895, -22.4709779, -2.26168633]
+s_current = [0, 0]
 
 portName = "COM4"
 controller = mainController.Controller(portName)
@@ -38,17 +38,27 @@ def unitsStabilityExpLoop():
 
 
 def mainExperiment():
+    global q_current, s_current
 
     dist = np.linalg.norm(q_current - q_target)
 
     while dist > 10**(-5):
-        config = controller.motionPlanner(q_current, q_target)
+
+        q_current = lu.getCurrentConfig()
+        if q_current is None:
+            continue
+        config = controller.motionPlanner(q_current, q_target, s_current)
         w = controller.wheelDrive(config[0], config[1], config[2])
 
         controller.moveRobot(w, config[2], config[3])
 
         q_current = lu.getCurrentConfig()
+        s_current = config[2]
 
+        if q_current is None:
+            continue
+
+        # print(q_current)
         error = np.linalg.norm(config[0] - q_current)
         dist = np.linalg.norm(q_current - q_target)
 
@@ -94,6 +104,10 @@ if __name__ == "__main__":
 
     # listener = keyboard.Listener(on_press=on_press)
     # listener.start()
+    while True:
+        q_current = lu.getCurrentConfig()
+        if q_current is not None:
+            break
 
     mainExperiment()
 

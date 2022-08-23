@@ -14,10 +14,11 @@ class Controller:
         self.serial_port = serial.Serial(portName, 115200)
         # self.serial_port = None
 
-    def motionPlanner(self, q, q_target):
+    def motionPlanner(self, q, q_target, s_current):
         dt = 0.1  # step size
         # A set of possible stiffness configurations
         s = [[0, 0], [0, 1], [1, 0], [1, 1]]
+        # Initialize a sequence of VSB stiffness values
 
         # A set of possible configurations and velocities
         q_ = [None] * len(s)
@@ -40,9 +41,9 @@ class Controller:
         q_tilda = velocity_coeff * (q_t - q) * t
         for i in range(len(s)):
             # Jacobian matrix
-            J = kinematics.hybridJacobian(q_0, q, s[i])
+            J = kinematics.hybridJacobian(q, q, s[i])
             # velocity input commands
-            v_[i] = np.matmul(np.linalg.pinv(J), q_tilda)
+            v_[i] = np.matmul(np.linalg.pinv(J), np.transpose(q_tilda))
             q_dot = np.matmul(J, v_[i])
             q_[i] = q + (1 - np.exp(-1 * t)) * q_dot * dt
 
@@ -66,7 +67,7 @@ class Controller:
         s_new = s[current_i]
         dist = np.linalg.norm(q_new - q_t)  # update error
 
-        if s_new != s_list[-1]:
+        if s_new != s_current:
             flag = True
 
         if (delta_q_[current_i] < 10 ** (-5)):
