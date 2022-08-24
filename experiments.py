@@ -17,7 +17,7 @@ lu.start()
 
 q_current = lu.getCurrentConfig()
 print(q_current)
-q_target = [0.21335079, 0.23490814, 1.84128416, -116.67467356, 25.1093924]
+q_target = [0.23490814, 0.21335079, 1.84128416, -116.67467356, 25.1093924]
 s_current = [0, 0]
 
 portName = "COM4"

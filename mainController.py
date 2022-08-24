@@ -43,7 +43,7 @@ class Controller:
             # Jacobian matrix
             J = kinematics.hybridJacobian(q, q, s[i])
             # velocity input commands
-            v_[i] = np.matmul(np.linalg.pinv(J), np.transpose(q_tilda))
+            v_[i] = np.matmul(np.linalg.pinv(J), q_tilda)
             q_dot = np.matmul(J, v_[i])
             q_[i] = q + (1 - np.exp(-1 * t)) * q_dot * dt
 
