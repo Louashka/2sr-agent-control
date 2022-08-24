@@ -47,13 +47,16 @@ class LU:
 
     def mapping(self, centers):
         if all(center is not None for center in centers):
+            print("Center", centers[0])
             edgeA = centers[3]  # code 15, (X15,Y15)
             edgeB = centers[4]  # code 16``(X16,Y16)
+            print("engeA", edgeA, "engeB", edgeB)
             center = centers[0]  # code 0   (X0,Y0)
-            LengthX = edgeA[0] - edgeB[0]  # Lx
-            LengthY = edgeB[1] - edgeA[1]  # Ly
-            distanceX = edgeA[0] - center[0]  # X
-            distanceY = edgeB[1] - center[1]  # Y
+            # because the axis between camera and the one we need is reversal, need to switch them
+            LengthX = edgeA[1] - edgeB[1]  # Lx
+            LengthY = edgeB[0] - edgeA[0]  # Ly
+            distanceX = edgeA[1] - center[1]  # X
+            distanceY = edgeB[0] - center[0]  # Y
             positionX = (distanceX / LengthX) * LU.edge_length
             positionY = (distanceY / LengthY) * LU.edge_length
             position = [positionX, positionY]
