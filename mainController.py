@@ -121,17 +121,18 @@ class Controller:
     def moveRobot(self, w, s, flag):
 
         commands = w.tolist() + s
+        # commands = [0, 0, 0, 0] + [0, 0]
 
         if (flag):
             self.sendData([0, 0, 0, 0] + s)
-            print([0, 0, 0, 0] + s)
-            time.sleep(90)
+            # print([0, 0, 0, 0] + s)
+            time.sleep(1)
 
         for i in range(2):
             self.sendData(commands)
             time.sleep(0.01)
 
-        print(commands)
+        # print(commands)
 
     def sendData(self, commands):
 

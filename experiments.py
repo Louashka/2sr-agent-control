@@ -16,7 +16,8 @@ lu = LUs.LU()
 lu.start()
 
 q_current = lu.getCurrentConfig()
-q_target = [282, 274, -2.00870895, -22.4709779, -2.26168633]
+print(q_current)
+q_target = [0.21335079, 0.23490814, 1.84128416, -116.67467356, 25.1093924]
 s_current = [0, 0]
 
 portName = "COM4"
@@ -48,6 +49,7 @@ def mainExperiment():
         if q_current is None:
             continue
         config = controller.motionPlanner(q_current, q_target, s_current)
+        # print(config[1])
         w = controller.wheelDrive(config[0], config[1], config[2])
 
         controller.moveRobot(w, config[2], config[3])

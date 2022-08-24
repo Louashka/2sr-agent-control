@@ -9,6 +9,7 @@ import math
 class LU:
     # segments
     l = 0.04  # 40 mm in meter
+    edge_length = 0.5  # 0.5*0.5m plane
     # Camera
     fx = 461.84448242
     fy = 443.28289795
@@ -44,9 +45,25 @@ class LU:
         color_image = np.asanyarray(color_frame.get_data())
         cv2.imshow("image", color_image)
 
+    def mapping(self, centers):
+        if all(center is not None for center in centers):
+            edgeA = centers[3]  # code 15, (X15,Y15)
+            edgeB = centers[4]  # code 16``(X16,Y16)
+            center = centers[0]  # code 0   (X0,Y0)
+            LengthX = edgeA[0] - edgeB[0]  # Lx
+            LengthY = edgeB[1] - edgeA[1]  # Ly
+            distanceX = edgeA[0] - center[0]  # X
+            distanceY = center[1] - edgeA[1]  # Y
+            positionX = (distanceX / LengthX) * LU.edge_length
+            positionY = (distanceY / LengthY) * LU.edge_length
+            position = [positionX, positionY]
+            return position
+        else:
+            return None
+
     def cal_Points(self, Ids, Corners, rvec, tvec):
         if Ids is not None:
-            center = np.full([3, 2], None)
+            center = np.full([5, 2], None)
             rvecs = np.full(3, None)
             tvecs = [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.]]
             for i in range(len(Ids)):
@@ -79,6 +96,22 @@ class LU:
                         center[0][1] = center_y
                         rvecs[0] = rvec[i][0]
                         tvecs[0] = tvec[i][0]
+                    elif Ids[i] == 15:
+                        edgeA = Corners[i][0]
+                        center_x = (
+                            edgeA[0][0] + edgeA[2][0]) / 2
+                        center_y = (
+                            edgeA[0][1] + edgeA[2][1]) / 2
+                        center[3][0] = center_x
+                        center[3][1] = center_y
+                    elif Ids[i] == 16:
+                        edgeB = Corners[i][0]
+                        center_x = (
+                            edgeB[0][0] + edgeB[2][0]) / 2
+                        center_y = (
+                            edgeB[0][1] + edgeB[2][1]) / 2
+                        center[4][0] = center_x
+                        center[4][1] = center_y
             # print(edges)
             if not np.any(center == None):
                 center = np.int0(center)
@@ -112,8 +145,8 @@ class LU:
 
             # for the curve, if the edge code's angle is lager than center, then the curve is negative;
             # if the edge code's angle is smaller than center, then the curve is positive
-            curve_A = angle_center - angle_A
-            curve_B = angle_B - angle_center
+            curve_A = - angle_center + angle_A
+            curve_B = - angle_B + angle_center
             # result is in radian
             Ka = curve_A / LU.l
             Kb = curve_B / LU.l
@@ -161,18 +194,19 @@ class LU:
                 return None
             else:
                 Ka, Kb, angle_center = self.cal_angles(rotationVec)
-                return centers, angle_center, Ka, Kb
+                position = self.mapping(centers)
+                return position, angle_center, Ka, Kb
 
     def getCurrentConfig(self):
         qc = numpy.array([0., 0., 0., 0., 0.])
         data = self.DetectArucoPose()
         if data is not None:
-            centers = data[0]
+            center = data[0]
             angle = data[1]
             Ka = data[2]
             Kb = data[3]
-            qc[0] = centers[0][0]
-            qc[1] = centers[0][1]
+            qc[0] = center[0]
+            qc[1] = center[1]
             qc[2] = angle
             qc[3] = Ka
             qc[4] = Kb
@@ -189,4 +223,4 @@ class LU:
 #         lu.stop()
 #         break
 #     qc = lu.getCurrentConfig()
-    # print("qc", qc)
+#     print("qc", qc)
