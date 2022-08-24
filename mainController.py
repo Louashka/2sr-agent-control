@@ -121,7 +121,7 @@ class Controller:
     def moveRobot(self, w, s, flag):
 
         commands = w.tolist() + s
-        # commands = [0, 0, 0, 0] + [0, 0]
+        commands = [0, 0, 0, 0] + [0, 0]
 
         if (flag):
             self.sendData([0, 0, 0, 0] + s)
@@ -132,7 +132,7 @@ class Controller:
             self.sendData(commands)
             time.sleep(0.01)
 
-        # print(commands)
+        print(commands)
 
     def sendData(self, commands):
 
