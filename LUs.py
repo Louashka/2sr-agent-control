@@ -53,7 +53,7 @@ class LU:
             LengthX = edgeA[0] - edgeB[0]  # Lx
             LengthY = edgeB[1] - edgeA[1]  # Ly
             distanceX = edgeA[0] - center[0]  # X
-            distanceY = center[1] - edgeA[1]  # Y
+            distanceY = edgeB[1] - center[1]  # Y
             positionX = (distanceX / LengthX) * LU.edge_length
             positionY = (distanceY / LengthY) * LU.edge_length
             position = [positionX, positionY]
@@ -145,8 +145,8 @@ class LU:
 
             # for the curve, if the edge code's angle is lager than center, then the curve is negative;
             # if the edge code's angle is smaller than center, then the curve is positive
-            curve_A = angle_center - angle_A
-            curve_B = angle_B - angle_center
+            curve_A = - angle_center + angle_A
+            curve_B = - angle_B + angle_center
             # result is in radian
             Ka = curve_A / LU.l
             Kb = curve_B / LU.l
@@ -215,12 +215,12 @@ class LU:
             return None
 
 
-lu = LU()
-lu.start()
-while True:
-    key = cv2.waitKey(1)
-    if key & 0xFF == ord('q') or key == 27:
-        lu.stop()
-        break
-    qc = lu.getCurrentConfig()
-    print("qc", qc)
+# lu = LU()
+# lu.start()
+# while True:
+#     key = cv2.waitKey(1)
+#     if key & 0xFF == ord('q') or key == 27:
+#         lu.stop()
+#         break
+#     qc = lu.getCurrentConfig()
+#     print("qc", qc)
