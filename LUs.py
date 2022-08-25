@@ -131,20 +131,32 @@ class LU:
         for i in range(len(rvecs)):
             rotationMatrix = cv2.Rodrigues(rvecs[i])
             rotationMatrix = rotationMatrix[0]
-            rotationMatrix = np.transpose(rotationMatrix)
+            # print("no transpotation", rotationMatrix)
+            # rotationMatrix = np.transpose(rotationMatrix)
+            # print("transpotated", rotationMatrix)
+            transferMatric = np.matrix([[0, 1, 0],
+                                       [-1, 0, 0],
+                                       [0, 0, 1]])
+            # rotationMatrix= transferMatric.dot(rotationMatrix)
+            # print("transfered", rotationMatrix)
             r31 = rotationMatrix[2][0]
             r11 = rotationMatrix[0][0]
             r21 = rotationMatrix[1][0]
             beta = math.atan2(-r31,
                               math.sqrt(math.pow(r11, 2) + math.pow(r21, 2)))
             alpha = math.atan2(r21 / math.cos(beta), r11 / math.cos(beta))
-            angles[i] = alpha
+            if alpha < 0:
+                alpha += 2 * np.pi
+
+            angles[i] = -alpha + np.pi/2
         # print("angles", angles*(180/3.14))
         if all(angle is not None for angle in angles):
             angle_center = angles[0]
+            # print(angle_center)
             angle_A = angles[1]
             angle_B = angles[2]
-            angles = angles * (180 / 3.14)
+            # print(angle_A)
+            # angles = angles * (180 / 3.14)
 
             # for the curve, if the edge code's angle is lager than center, then the curve is negative;
             # if the edge code's angle is smaller than center, then the curve is positive
@@ -197,6 +209,7 @@ class LU:
                 return None
             else:
                 Ka, Kb, angle_center = self.cal_angles(rotationVec)
+                # angle_center = angle_center - np.pi/2
                 position = self.mapping(centers)
                 return position, angle_center, Ka, Kb
 

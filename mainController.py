@@ -12,6 +12,8 @@ class Controller:
 
     def __init__(self, portName):
         self.serial_port = serial.Serial(portName, 115200)
+        self.vss_on = False
+        self.counter = 0
         # self.serial_port = None
 
     def motionPlanner(self, q, q_target, s_current):
@@ -120,19 +122,35 @@ class Controller:
 
     def moveRobot(self, w, s, flag):
 
+        w *= 7
         commands = w.tolist() + s
-        commands = [0, 0, 0, 0] + [0, 0]
+        commands_ = w.tolist() + [0, 0]
 
         if (flag):
             self.sendData([0, 0, 0, 0] + s)
-            # print([0, 0, 0, 0] + s)
-            time.sleep(1)
+            self.sendData([0, 0, 0, 0, 0, 0])
+            print("Phase transition: ", s)
+            self.counter = 0
+            if all(s) == 1:
+                time.sleep(45)
+            else:
+                time.sleep(90)
 
-        for i in range(2):
+        if self.counter < 75:
+            if self.vss_on == True:
+                self.sendData(commands)
+                print("Controller commands (ON): ", commands)
+            else:
+                self.sendData(commands_)
+                print("Controller commands (OFF): ", commands_)
+            self.counter += 1
+        else:
             self.sendData(commands)
-            time.sleep(0.01)
+            print("Controller commands (timer 0): ", commands)
+            self.counter = 0
+            self.vss_on = not self.vss_on
 
-        print(commands)
+        time.sleep(0.01)
 
     def sendData(self, commands):
 
