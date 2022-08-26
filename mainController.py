@@ -12,12 +12,14 @@ class Controller:
 
     def __init__(self, portName):
         self.serial_port = serial.Serial(portName, 115200)
-        self.vss_on = False
+        self.start = True
+        self.lock = False
+        self.vss_on = True
         self.counter = 0
         # self.serial_port = None
 
     def motionPlanner(self, q, q_target, s_current):
-        dt = 0.1  # step size
+        dt = 0.05  # step size
         # A set of possible stiffness configurations
         s = [[0, 0], [0, 1], [1, 0], [1, 1]]
         # Initialize a sequence of VSB stiffness values
@@ -30,11 +32,12 @@ class Controller:
         # Euclidean distance between current and target configurations (error)
         dist = np.linalg.norm(q - q_t)
 
-        t = 0.1  # current time
+        t = 0.05  # current time
         # feedback gain
-        velocity_coeff = 1 * np.ones((5,), dtype=int)
+        velocity_coeff = [5, 5, 3, 3, 3]
         # Index of the current stiffness configuration
-        current_i = None
+        current_i = s.index(s_current)
+        # print("current_i: ", current_i + 1)
 
         flag = False  # indicates whether VSB stiffness has changed
 
@@ -47,7 +50,7 @@ class Controller:
             # velocity input commands
             v_[i] = np.matmul(np.linalg.pinv(J), q_tilda)
             q_dot = np.matmul(J, v_[i])
-            q_[i] = q + (1 - np.exp(-1 * t)) * q_dot * dt
+            q_[i] = q + q_dot * dt
 
         # Determine the stiffness configuration that promotes
         # faster approach to the target
@@ -59,21 +62,32 @@ class Controller:
 
         # Stiffness transition is committed only if the previous
         # stiffness configuration does not promote further motion
-        if min_i != current_i and current_i is not None:
-            if delta_q_[current_i] > 10**(-17):
-                min_i = current_i
+        # if min_i != current_i and not self.start:
+        #     if self.lock or delta_q_[current_i] > 10**(-2):
+        #         min_i = current_i
 
-        current_i = min_i  # update current stiffness
+        current_i = 0  # update current stiffness
+
+        if np.abs(q[3] - q_target[3]) <= 20 and np.abs(q[4] - q_target[4]) <= 20:
+            current_i = 0
+            self.lock = True
+
         q_new = q_[current_i]  # update current configuration
         v_new = v_[current_i]
+        print("Velocity commands: ", v_new)
         s_new = s[current_i]
         dist = np.linalg.norm(q_new - q_t)  # update error
 
         if s_new != s_current:
             flag = True
 
-        if (delta_q_[current_i] < 10 ** (-5)):
-            q_new, v_new, s_new, flag = motionPlanner(self, q_new, q_target)
+        if self.start:
+            self.start = False
+
+        # if (delta_q_[current_i] < 10 ** (-5)):
+        #     q_new, v_new, s_new, flag = motionPlanner(self, q_new, q_target)
+
+        # print(self.start)
 
         return q_new, v_new, s_new, flag
 
@@ -122,35 +136,38 @@ class Controller:
 
     def moveRobot(self, w, s, flag):
 
-        w *= 7
         commands = w.tolist() + s
         commands_ = w.tolist() + [0, 0]
 
+        # s = [0, 0]
+        # commands = [0, 0, 0, 0] + s
+        # commands_ = [0, 0, 0, 0] + s
+
         if (flag):
             self.sendData([0, 0, 0, 0] + s)
-            self.sendData([0, 0, 0, 0, 0, 0])
             print("Phase transition: ", s)
             self.counter = 0
             if all(s) == 1:
-                time.sleep(45)
+                time.sleep(60)
             else:
-                time.sleep(90)
+                time.sleep(300)
 
-        if self.counter < 75:
-            if self.vss_on == True:
-                self.sendData(commands)
-                print("Controller commands (ON): ", commands)
-            else:
-                self.sendData(commands_)
-                print("Controller commands (OFF): ", commands_)
-            self.counter += 1
-        else:
+        if self.vss_on:
             self.sendData(commands)
-            print("Controller commands (timer 0): ", commands)
-            self.counter = 0
-            self.vss_on = not self.vss_on
+            print("Controller commands (ON): ", commands)
+            if self.counter > 60:
+                self.counter = 0
+                self.vss_on = False
+        else:
+            self.sendData(commands_)
+            print("Controller commands (OFF): ", commands_)
+            if self.counter > 300:
+                self.counter = 0
+                self.vss_on = True
 
-        time.sleep(0.01)
+        self.counter += 1
+
+        time.sleep(2)
 
     def sendData(self, commands):
 

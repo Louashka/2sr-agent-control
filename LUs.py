@@ -125,6 +125,14 @@ class LU:
             return center, rvecs
             # print("realsense", realsense.center)
 
+    def normaliseAngle(self, th):
+        th = th % (2 * np.pi)
+        th = (th + 2 * np.pi) % (2 * np.pi)
+        if th > np.pi:
+            th -= 2 * np.pi
+
+        return th
+
     def cal_angles(self, rvecs):
         angles = np.float32([None, None, None])
         # Apply Rodrignes's Formula to transfer rotation vectors into rotation matrix
@@ -135,8 +143,8 @@ class LU:
             # rotationMatrix = np.transpose(rotationMatrix)
             # print("transpotated", rotationMatrix)
             transferMatric = np.matrix([[0, 1, 0],
-                                       [-1, 0, 0],
-                                       [0, 0, 1]])
+                                        [-1, 0, 0],
+                                        [0, 0, 1]])
             # rotationMatrix= transferMatric.dot(rotationMatrix)
             # print("transfered", rotationMatrix)
             r31 = rotationMatrix[2][0]
@@ -145,23 +153,49 @@ class LU:
             beta = math.atan2(-r31,
                               math.sqrt(math.pow(r11, 2) + math.pow(r21, 2)))
             alpha = math.atan2(r21 / math.cos(beta), r11 / math.cos(beta))
-            if alpha < 0:
-                alpha += 2 * np.pi
+            # print("alpha: ", alpha)
+            angles[i] = -alpha + np.pi / 2
+            angles[i] = self.normaliseAngle(angles[i])
 
-            angles[i] = -alpha + np.pi/2
+            # if angles[i] < 0:
+            #     angles[i] += 2 * np.pi
         # print("angles", angles*(180/3.14))
         if all(angle is not None for angle in angles):
             angle_center = angles[0]
+            # print("angle_center: ", angle_center)
             # print(angle_center)
             angle_A = angles[1]
+            # print("angle_A: ", angle_A)
             angle_B = angles[2]
+            # print("angle_B: ", angle_B)
             # print(angle_A)
             # angles = angles * (180 / 3.14)
 
+            # if angle_center > 0:
+            #     if angle_A < 0:
+            #         angle_A += 2 * np.pi
+            #     if angle_B < 0:
+            #         angle_B += 2 * np.pi
+            # elif angle_center < 0:
+            #     if angle_A > 0:
+            #         angle_A -= 2 * np.pi
+            #     if angle_B > 0:
+            #         angle_B -= 2 * np.pi
+
             # for the curve, if the edge code's angle is lager than center, then the curve is negative;
             # if the edge code's angle is smaller than center, then the curve is positive
-            curve_A = angle_center - angle_A
-            curve_B = angle_B - angle_center
+            curve_A = self.normaliseAngle(angle_center - angle_A)
+            curve_B = self.normaliseAngle(angle_B - angle_center)
+            # if angle_center > angle_A:
+            #     curve_A = angle_center - angle_A
+            # else:
+            #     curve_A = angle_A - angle_center
+            # print("curve_A: ", curve_A)
+            # if angle_B > angle_center:
+            #     curve_B = angle_B - angle_center
+            # else:
+            #     curve_B = angle_center - angle_B
+            # print("curve_B: ", curve_B)
             # result is in radian
             Ka = curve_A / LU.l
             Kb = curve_B / LU.l
@@ -217,10 +251,10 @@ class LU:
         qc = numpy.array([0., 0., 0., 0., 0.])
         data = self.DetectArucoPose()
         if data is not None:
-            center = data[0]
-            angle = data[1]
-            Ka = data[2]
-            Kb = data[3]
+            center = np.round(data[0], 2)
+            angle = np.round(data[1], 1)
+            Ka = np.round(data[2])
+            Kb = np.round(data[3])
             qc[0] = center[0]
             qc[1] = center[1]
             qc[2] = angle
