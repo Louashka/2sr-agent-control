@@ -34,7 +34,7 @@ class Controller:
 
         t = 0.05  # current time
         # feedback gain
-        velocity_coeff = [5, 5, 3, 3, 3]
+        velocity_coeff = [6, 6, 4, 4, 3]
         # Index of the current stiffness configuration
         current_i = s.index(s_current)
         # print("current_i: ", current_i + 1)
@@ -43,12 +43,13 @@ class Controller:
 
         # INVERSE KINEMATICS
 
-        q_tilda = velocity_coeff * (q_t - q) * t
+        q_tilda = (q_t - q) * t
         for i in range(len(s)):
             # Jacobian matrix
             J = kinematics.hybridJacobian(q, q, s[i])
             # velocity input commands
-            v_[i] = np.matmul(np.linalg.pinv(J), q_tilda)
+            v_[i] = np.multiply(velocity_coeff, np.matmul(
+                np.linalg.pinv(J), q_tilda))
             q_dot = np.matmul(J, v_[i])
             q_[i] = q + q_dot * dt
 
@@ -62,19 +63,19 @@ class Controller:
 
         # Stiffness transition is committed only if the previous
         # stiffness configuration does not promote further motion
-        # if min_i != current_i and not self.start:
-        #     if self.lock or delta_q_[current_i] > 10**(-2):
-        #         min_i = current_i
+        if min_i != current_i and not self.start:
+            if self.lock or delta_q_[current_i] > 10**(-2):
+                min_i = current_i
 
-        current_i = 0  # update current stiffness
+        current_i = min_i  # update current stiffness
 
-        if np.abs(q[3] - q_target[3]) <= 20 and np.abs(q[4] - q_target[4]) <= 20:
+        if np.abs(q[3] - q_target[3]) <= 2 and np.abs(q[4] - q_target[4]) <= 2:
             current_i = 0
             self.lock = True
 
         q_new = q_[current_i]  # update current configuration
         v_new = v_[current_i]
-        print("Velocity commands: ", v_new)
+        # print("Velocity commands: ", v_new)
         s_new = s[current_i]
         dist = np.linalg.norm(q_new - q_t)  # update error
 
@@ -100,7 +101,7 @@ class Controller:
 
         V_ = np.zeros((4, 5))
         for i in range(4):
-            b0_q_w = self.getWheelPosition(i, k[i], q[2])
+            b0_q_w = self.getWheelPosition(i, k[i])
             tau = b0_q_w[0] * np.sin(b0_q_w[2]) - \
                 b0_q_w[1] * np.cos(b0_q_w[2])
             V_[i, :] = [flag_soft * int(i == 0), -flag_soft * int(
@@ -111,44 +112,56 @@ class Controller:
 
         return w.round(3)
 
-    def getWheelPosition(self, i, k, phi):
+    def getWheelPosition(self, i, k):
 
-        flag = 1 if i < 2 else -1
-        alpha = k * globals_.L_VSS
+        flag = -1 if i < 2 else 1
+        alpha = flag * k * globals_.L_VSS
 
         if k == 0:
-            b0_x_bj = globals_.L_LINK / 2 + globals_.L_VSS
+            b0_x_bj = flag * (globals_.L_LINK / 2 + globals_.L_VSS)
             b0_y_bj = 0
         else:
-            b0_x_bj = globals_.L_LINK / 2 + np.sin(alpha) / k
+            b0_x_bj = flag * globals_.L_LINK / 2 + np.sin(alpha) / k
             b0_y_bj = (1 - np.cos(alpha)) / k
 
-        b0_T_bj = np.array([[np.cos(alpha), flag * np.sin(alpha), -flag * b0_x_bj],
-                            [-flag * np.sin(alpha), np.cos(alpha), b0_y_bj],
+        b0_T_bj = np.array([[np.cos(alpha), np.sin(alpha), b0_x_bj],
+                            [np.sin(alpha), np.cos(alpha), b0_y_bj],
                             [0, 0, 1]])
 
         b0_q_w = np.matmul(b0_T_bj, np.append(
             globals_.bj_Q_w, [[1, 1, 1, 1]], axis=0)[:, i])
 
-        b0_q_w = np.append(b0_q_w[:-1], phi - flag * alpha + globals_.BETA[i])
+        b0_q_w = np.append(
+            b0_q_w[:-1], self.normaliseAngle(flag * alpha + globals_.BETA[i]))
 
         return b0_q_w
 
+    def normaliseAngle(self, th):
+        th = th % (2 * np.pi)
+        th = (th + 2 * np.pi) % (2 * np.pi)
+        if th > np.pi:
+            th -= 2 * np.pi
+
+        return th
+
     def moveRobot(self, w, s, flag):
+
+        w = (3 * w)
+        w = w.round(3)
 
         commands = w.tolist() + s
         commands_ = w.tolist() + [0, 0]
 
-        # s = [0, 0]
-        # commands = [0, 0, 0, 0] + s
-        # commands_ = [0, 0, 0, 0] + s
+        s = [0, 0]
+        commands = [0, 0, 0, 0] + s
+        commands_ = [0, 0, 0, 0] + s
 
         if (flag):
             self.sendData([0, 0, 0, 0] + s)
             print("Phase transition: ", s)
             self.counter = 0
             if all(s) == 1:
-                time.sleep(60)
+                time.sleep(100)
             else:
                 time.sleep(300)
 
@@ -167,7 +180,7 @@ class Controller:
 
         self.counter += 1
 
-        time.sleep(2)
+        time.sleep(0.01)
 
     def sendData(self, commands):
 

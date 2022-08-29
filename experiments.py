@@ -16,7 +16,7 @@ lu = LUs.LU()
 lu.start()
 
 q_current = lu.getCurrentConfig()
-q_target = [0.24, 0.18, 0, 0, -3]
+q_target = [0.28, 0.14, -0.4, -29, 27]
 s_current = [0, 0]
 
 portName = "COM4"
@@ -62,49 +62,46 @@ def mainExperiment():
         # print(q_current)
         error = np.linalg.norm(config[0] - q_current)
         dist = np.linalg.norm(q_current[:3] - q_target[:3])
+        timeStamp = datetime.now().strftime("%H:%M:%S")
 
-        expData.append([error, dist])
+        expData.append([config[0][0], config[0][1], config[0][2], config[0][3], config[0][4], config[1][0], config[1][1], config[1][2], config[1][3], config[1][4], q_current[0], q_current[1], q_current[2],
+                        q_current[3], q_current[4], s_current[0], s_current[1],  timeStamp])
 
     w = np.array([[0, 0, 0, 0]])
     s = [0, 0]
     flag = True
     controller.moveRobot(w, s, flag)
 
-    columnNames = ["error", "dist"]
+    columnNames = ["x_model", "y_model", "angle_model", "k1_model", "k2_model", "v1", "v2", "u0", "v0", "r0", "x", "y", "angle", "k1", "k2",
+                   "s1", "s2", "time"]
     df = pd.DataFrame(expData, columns=columnNames)
     print("save")
     df.to_csv('ExpData/mainExperiment1.csv', index=False)
+
+    controller.closeConnection()
 
 
 def on_press(key):
     global w, s, flag
 
-    if key.char == "s":
-        print('Stop and save')
+    if key.char == "q":
+        print('Aborted')
 
         w = np.array([[0, 0, 0, 0]])
-        s = [[0, 0]]
-        flag = [True]
+        s = [0, 0]
+        flag = True
         controller.moveRobot(w, s, flag)
 
-        # columnNames = ["time stamp", "LU1 x", "LU1 y",
-        #                "LU1 th", "LU2 x", "LU2 y", "LU2 th"]
-        columnNames = ["error", "dist"]
-        df = pd.DataFrame(expData, columns=columnNames)
-        print("save")
-        df.to_csv('ExpData/mainExperiment1.csv', index=False)
+        controller.closeConnection()
 
         return False
 
 
 if __name__ == "__main__":
 
-    # portName = "COM4"
-    # controller = mainController.Controller(portName)
-    # controller.openConnection()
+    # with keyboard.Listener(on_press=on_press) as listener:
+    #     listener.join()
 
-    # listener = keyboard.Listener(on_press=on_press)
-    # listener.start()
     while True:
         q_current = lu.getCurrentConfig()
         if q_current is not None:
@@ -112,10 +109,3 @@ if __name__ == "__main__":
             break
 
     mainExperiment()
-
-    # Thread(target=mainExperiment, args=(),
-    #        name='mainExperiment', daemon=True).start()
-
-    # listener.join()  # wait for abortKey
-
-    # mainController.closeConnection()
