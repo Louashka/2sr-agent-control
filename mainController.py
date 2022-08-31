@@ -19,7 +19,7 @@ class Controller:
         # self.serial_port = None
 
     def motionPlanner(self, q, q_target, s_current):
-        dt = 0.05  # step size
+        dt = 0.5  # step size
         # A set of possible stiffness configurations
         s = [[0, 0], [0, 1], [1, 0], [1, 1]]
         # Initialize a sequence of VSB stiffness values
@@ -32,9 +32,9 @@ class Controller:
         # Euclidean distance between current and target configurations (error)
         dist = np.linalg.norm(q - q_t)
 
-        t = 0.05  # current time
+        t = 0.5  # current time
         # feedback gain
-        velocity_coeff = [6, 6, 4, 4, 3]
+        # velocity_coeff = [1, 1, 2, 2, 2]
         # Index of the current stiffness configuration
         current_i = s.index(s_current)
         # print("current_i: ", current_i + 1)
@@ -48,8 +48,7 @@ class Controller:
             # Jacobian matrix
             J = kinematics.hybridJacobian(q, q, s[i])
             # velocity input commands
-            v_[i] = np.multiply(velocity_coeff, np.matmul(
-                np.linalg.pinv(J), q_tilda))
+            v_[i] = np.matmul(np.linalg.pinv(J), q_tilda)
             q_dot = np.matmul(J, v_[i])
             q_[i] = q + q_dot * dt
 
@@ -69,14 +68,24 @@ class Controller:
 
         current_i = min_i  # update current stiffness
 
+        if current_i == 1:
+            current_i = 0
+
         if np.abs(q[3] - q_target[3]) <= 2 and np.abs(q[4] - q_target[4]) <= 2:
+            # if current_i != 0 and s[current_i] != s_current:
             current_i = 0
             self.lock = True
 
         q_new = q_[current_i]  # update current configuration
         v_new = v_[current_i]
+        # print(v_new)
+        # time.sleep(2)
         # print("Velocity commands: ", v_new)
         s_new = s[current_i]
+        # if s_new[0] == 1 and s_new[1] == 0:
+        #     v_new[1] = 0
+        # if s_new[0] == 0 and s_new[1] == 1:
+        #     v_new[0] = 0
         dist = np.linalg.norm(q_new - q_t)  # update error
 
         if s_new != s_current:
@@ -124,7 +133,7 @@ class Controller:
             b0_x_bj = flag * globals_.L_LINK / 2 + np.sin(alpha) / k
             b0_y_bj = (1 - np.cos(alpha)) / k
 
-        b0_T_bj = np.array([[np.cos(alpha), np.sin(alpha), b0_x_bj],
+        b0_T_bj = np.array([[np.cos(alpha), -np.sin(alpha), b0_x_bj],
                             [np.sin(alpha), np.cos(alpha), b0_y_bj],
                             [0, 0, 1]])
 
@@ -132,7 +141,7 @@ class Controller:
             globals_.bj_Q_w, [[1, 1, 1, 1]], axis=0)[:, i])
 
         b0_q_w = np.append(
-            b0_q_w[:-1], self.normaliseAngle(flag * alpha + globals_.BETA[i]))
+            b0_q_w[:-1], self.normaliseAngle(alpha + globals_.BETA[i]))
 
         return b0_q_w
 
@@ -144,26 +153,43 @@ class Controller:
 
         return th
 
-    def moveRobot(self, w, s, flag):
+    def moveRobot(self, w, s, flag, flag_cool):
 
-        w = (3 * w)
+        # w = (3.5 * w)
+        if s[0] == 1:
+            w[2] = 3.2 * w[2]
         w = w.round(3)
 
         commands = w.tolist() + s
         commands_ = w.tolist() + [0, 0]
 
-        s = [0, 0]
-        commands = [0, 0, 0, 0] + s
-        commands_ = [0, 0, 0, 0] + s
+        # s = [0, 0]
+        # commands = [0, 0, 0, 0] + s
+        # commands_ = [0, 0, 0, 0] + s
 
         if (flag):
-            self.sendData([0, 0, 0, 0] + s)
-            print("Phase transition: ", s)
             self.counter = 0
+
             if all(s) == 1:
+                print("Phase transition: ", s)
+                self.sendData([0, 0, 0, 0] + s)
                 time.sleep(100)
             else:
-                time.sleep(300)
+                if any(s) == 1:
+                    if flag_cool:
+                        print("Phase transition: ", s, ", cooling")
+                        self.sendData([0, 0, 0, 0, 0, 0])
+                        time.sleep(400)
+                    # print("Phase transition: ", s, ", heating")
+                    self.sendData([0, 0, 0, 0] + s)
+                    time.sleep(2)
+                    print("Phase transition: ", s, ", heating")
+                    self.sendData([0, 0, 0, 0] + s)
+                    time.sleep(100)
+                else:
+                    print("Phase transition: ", s)
+                    self.sendData([0, 0, 0, 0] + s)
+                    time.sleep(300)
 
         if self.vss_on:
             self.sendData(commands)

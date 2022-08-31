@@ -16,7 +16,10 @@ lu = LUs.LU()
 lu.start()
 
 q_current = lu.getCurrentConfig()
-q_target = [0.28, 0.14, -0.4, -29, 27]
+# q_target = [0.28, 0.24, -1, 23, 19]
+# q_target = [0.28, 0.14, -0.4, -29, 27]
+# q_target1 = [0.24, 0.21, 0.5, 28, 3]
+q_target = [0.27, 0.24, 0.9, 32, 13]
 s_current = [0, 0]
 
 portName = "COM4"
@@ -41,6 +44,7 @@ def mainExperiment():
     global q_current, s_current
 
     dist = np.linalg.norm(q_current[:3] - q_target[:3])
+    flag_cool = False
 
     while dist > 10**(-2):
 
@@ -51,7 +55,13 @@ def mainExperiment():
         config = controller.motionPlanner(q_current, q_target, s_current)
         w = controller.wheelDrive(config[0], config[1], config[2])
 
-        controller.moveRobot(w, config[2], config[3])
+        if s_current[0] == 1 and config[2][0] == 0 or s_current[1] == 1 and config[2][1] == 0:
+            flag_cool = True
+        else:
+            flag_cool = False
+        # print("Flag: ", flag_cool)
+
+        controller.moveRobot(w, config[2], config[3], flag_cool)
 
         q_current = lu.getCurrentConfig()
         s_current = config[2]
@@ -69,14 +79,14 @@ def mainExperiment():
 
     w = np.array([[0, 0, 0, 0]])
     s = [0, 0]
-    flag = True
-    controller.moveRobot(w, s, flag)
+    flag = False
+    controller.moveRobot(w, s, flag, False)
 
     columnNames = ["x_model", "y_model", "angle_model", "k1_model", "k2_model", "v1", "v2", "u0", "v0", "r0", "x", "y", "angle", "k1", "k2",
                    "s1", "s2", "time"]
     df = pd.DataFrame(expData, columns=columnNames)
     print("save")
-    df.to_csv('ExpData/mainExperiment1.csv', index=False)
+    df.to_csv('ExpData/mainExperiment3.csv', index=False)
 
     controller.closeConnection()
 
@@ -105,7 +115,8 @@ if __name__ == "__main__":
     while True:
         q_current = lu.getCurrentConfig()
         if q_current is not None:
-            # print(q_current)
+            print("Initial config: ", q_current)
+            # print(controller.getWheelPosition(1, q_current[3]))
             break
 
-    mainExperiment()
+    # mainExperiment()
