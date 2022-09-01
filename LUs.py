@@ -251,8 +251,8 @@ class LU:
         qc = numpy.array([0., 0., 0., 0., 0.])
         data = self.DetectArucoPose()
         if data is not None:
-            center = np.round(data[0], 2)
-            angle = np.round(data[1], 2)
+            center = np.round(data[0], 3)
+            angle = np.round(data[1], 3)
             Ka = np.round(data[2])
             Kb = np.round(data[3])
             qc[0] = center[0]

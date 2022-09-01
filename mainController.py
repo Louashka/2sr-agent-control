@@ -68,7 +68,7 @@ class Controller:
 
         current_i = min_i  # update current stiffness
 
-        if current_i == 1:
+        if current_i == 1 or current_i == 2:
             current_i = 0
 
         if np.abs(q[3] - q_target[3]) <= 2 and np.abs(q[4] - q_target[4]) <= 2:
@@ -155,9 +155,12 @@ class Controller:
 
     def moveRobot(self, w, s, flag, flag_cool):
 
-        # w = (3.5 * w)
-        if s[0] == 1:
-            w[2] = 3.2 * w[2]
+        w = (3.2 * w)
+        # if s[0] == 1:
+        #     w[2] = 3.2 * w[2]
+        # for i in range(4):
+        #     if any(np.abs(w[i])) < 0.5:
+        #         w[i] = 7 * w[i]
         w = w.round(3)
 
         commands = w.tolist() + s

@@ -19,7 +19,7 @@ q_current = lu.getCurrentConfig()
 # q_target = [0.28, 0.24, -1, 23, 19]
 # q_target = [0.28, 0.14, -0.4, -29, 27]
 # q_target1 = [0.24, 0.21, 0.5, 28, 3]
-q_target = [0.27, 0.24, 0.9, 32, 13]
+q_target = [0.225, 0.245, -0.235, 38, 34]
 s_current = [0, 0]
 
 portName = "COM4"
@@ -115,8 +115,8 @@ if __name__ == "__main__":
     while True:
         q_current = lu.getCurrentConfig()
         if q_current is not None:
-            print("Initial config: ", q_current)
+            # print("Initial config: ", q_current)
             # print(controller.getWheelPosition(1, q_current[3]))
             break
 
-    # mainExperiment()
+    mainExperiment()
