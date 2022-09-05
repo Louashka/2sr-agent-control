@@ -19,7 +19,7 @@ q_current = lu.getCurrentConfig()
 # q_target = [0.28, 0.24, -1, 23, 19]
 # q_target = [0.28, 0.14, -0.4, -29, 27]
 # q_target1 = [0.24, 0.21, 0.5, 28, 3]
-q_target = [0.225, 0.245, -0.235, 38, 34]
+q_target = [0.241,  0.266, -0.5, -27, 12]
 s_current = [0, 0]
 
 portName = "COM4"
@@ -86,7 +86,7 @@ def mainExperiment():
                    "s1", "s2", "time"]
     df = pd.DataFrame(expData, columns=columnNames)
     print("save")
-    df.to_csv('ExpData/mainExperiment3.csv', index=False)
+    df.to_csv('ExpData/mainExperiment6.csv', index=False)
 
     controller.closeConnection()
 
@@ -115,8 +115,8 @@ if __name__ == "__main__":
     while True:
         q_current = lu.getCurrentConfig()
         if q_current is not None:
-            # print("Initial config: ", q_current)
+            print("Initial config: ", q_current)
             # print(controller.getWheelPosition(1, q_current[3]))
             break
 
-    mainExperiment()
+    # mainExperiment()
