@@ -78,6 +78,9 @@ class Controller:
 
         q_new = q_[current_i]  # update current configuration
         v_new = v_[current_i]
+        # lu_coef = min(0.04 / v_new[0], 0.04 / v_new[1])
+        v_new[0] = 0
+        v_new[1] = 0.1
         # print(v_new)
         # time.sleep(2)
         # print("Velocity commands: ", v_new)
@@ -153,29 +156,36 @@ class Controller:
 
         return th
 
+    def moveRobotM(self, w, s, flag, flag_cool):
+        w = w.round(3)
+
+        commands = w.tolist() + s
+
+        self.sendData(commands)
+
     def moveRobot(self, w, s, flag, flag_cool):
 
         # w = (4 * w)
-        if s[1] == 1:
-            if np.abs(w[2]) < 0.2:
-                w[2] = (30 * w[2])
-            elif np.abs(w[2]) < 0.5:
-                w[2] = (13 * w[2])
-            elif np.abs(w[2]) < 1:
-                w[2] = (6.5 * w[2])
-            elif np.abs(w[2]) < 3:
-                w[2] = (2 * w[2])
-        if s[0] == 0 and s[1] == 0:
-            w = (3 * w)
+        # if s[1] == 1:
+        #     if np.abs(w[2]) < 0.2:
+        #         w[2] = (30 * w[2])
+        #     elif np.abs(w[2]) < 0.5:
+        #         w[2] = (13 * w[2])
+        #     elif np.abs(w[2]) < 1:
+        #         w[2] = (6.5 * w[2])
+        #     elif np.abs(w[2]) < 3:
+        #         w[2] = (2 * w[2])
+        # if s[0] == 0 and s[1] == 0:
+        #     w = (3 * w)
 
         w = w.round(3)
 
         commands = w.tolist() + s
         commands_ = w.tolist() + [0, 0]
 
-        s = [0, 0]
-        commands = [0, 0, 0, 0] + s
-        commands_ = [0, 0, 0, 0] + s
+        # s = [0, 0]
+        # commands = [0, 0, 0, 0] + s
+        # commands_ = [0, 0, 0, 0] + s
 
         if (flag):
             self.counter = 0
@@ -183,19 +193,19 @@ class Controller:
             if all(s) == 1:
                 print("Phase transition: ", s)
                 self.sendData([0, 0, 0, 0] + s)
-                time.sleep(100)
+                time.sleep(60)
             else:
                 if any(s) == 1:
                     if flag_cool:
                         print("Phase transition: ", s, ", cooling")
                         self.sendData([0, 0, 0, 0, 0, 0])
-                        time.sleep(400)
+                        time.sleep(300)
                     # print("Phase transition: ", s, ", heating")
                     self.sendData([0, 0, 0, 0] + s)
                     time.sleep(2)
                     print("Phase transition: ", s, ", heating")
                     self.sendData([0, 0, 0, 0] + s)
-                    time.sleep(100)
+                    time.sleep(60)
                 else:
                     print("Phase transition: ", s)
                     self.sendData([0, 0, 0, 0] + s)
