@@ -117,9 +117,13 @@ def manualControl(v, s):
     global s_current
     # print(s_current)
     # print(s)
+    counter = 0
 
     while True:
         q_current = lu.getCurrentConfig()
+        if counter == 7:
+            break
+        counter += 1
         if q_current is not None:
 
             w = controller.wheelDrive(q_current, v, s)
