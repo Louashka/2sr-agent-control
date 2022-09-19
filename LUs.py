@@ -237,7 +237,7 @@ class LU:
                 #                rvec[i, :, :], tvec[i, :, :], 0.03)
                 # aruco.drawDetectedMarkers(frame, corners, ids)
                 # print("rvec[", i, ",: , ：]: ", rvec[i, :, :])
-            cv2.imshow("arucoDetector", frame)
+            # cv2.imshow("arucoDetector", frame)
             centers, rotationVec = self.cal_Points(ids, corners, rvec, tvec)
             if np.any(centers == None) or np.any(rotationVec == None):
                 return None
