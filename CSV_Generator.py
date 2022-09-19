@@ -5,11 +5,11 @@ from datetime import datetime
 from pynput import keyboard
 import cv2
 import PureThermal
-import LUs_v2
+import LUs
 
 # create objects
 thermal = PureThermal.PureThermal()
-lu = LUs_v2.LU()
+lu = LUs.LU()
 lu.start()
 
 flag = False
@@ -38,7 +38,8 @@ def get_data():
                 timeStamp = datetime.now().strftime("%H:%M:%S")
                 for i in range(len(t_current[1])):
                     if i == 0:
-                        expData.append([timeStamp, t_current[0], q_current[3], q_current[4], t_current[1][0]])
+                        expData.append(
+                            [timeStamp, t_current[0], q_current[3], q_current[4], t_current[1][0]])
                     else:
                         expData.append(([timeStamp, 0, 0, 0, t_current[1][i]]))
                 print(expData)
@@ -113,7 +114,8 @@ def data_collection():
     timeStamp = datetime.now().strftime("%H:%M:%S")
     for i in range(len(t_current[1])):
         if i == 1:
-            expData.append([timeStamp, t_current[0], q_current[3], q_current[4], t_current[2]])
+            expData.append(
+                [timeStamp, t_current[0], q_current[3], q_current[4], t_current[2]])
         else:
             expData.append(([timeStamp, 0, 0, 0, 0, t_current[1][i]]))
     print(expData)
@@ -122,11 +124,3 @@ def data_collection():
 while True:
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
-
-
-
-
-
-
-
-

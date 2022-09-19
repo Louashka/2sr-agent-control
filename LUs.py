@@ -233,9 +233,9 @@ class LU:
             for i in range(rvec.shape[0]):
                 tvecCopy = tvec[i, :, :] + [10., 0, 0]
                 # print("tvecCopy", tvecCopy)
-                aruco.drawAxis(frame, LU.cameraMatrix, LU.dist,
-                               rvec[i, :, :], tvec[i, :, :], 0.03)
-                aruco.drawDetectedMarkers(frame, corners, ids)
+                # aruco.drawAxis(frame, LU.cameraMatrix, LU.dist,
+                #                rvec[i, :, :], tvec[i, :, :], 0.03)
+                # aruco.drawDetectedMarkers(frame, corners, ids)
                 # print("rvec[", i, ",: , ：]: ", rvec[i, :, :])
             cv2.imshow("arucoDetector", frame)
             centers, rotationVec = self.cal_Points(ids, corners, rvec, tvec)
