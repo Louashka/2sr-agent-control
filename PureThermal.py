@@ -24,7 +24,7 @@ class PureThermal:
         xˈˈ = fx.derivative(2)(t)
         yˈ = fy.derivative(1)(t)
         yˈˈ = fy.derivative(2)(t)
-        curvature = (xˈ * yˈˈ - yˈ * xˈˈ) / np.power(xˈ * 2 + yˈ * 2, 3/2)
+        curvature = (xˈ * yˈˈ - yˈ * xˈˈ) / np.power(xˈ * 2 + yˈ * 2, 3 / 2)
         theta = np.arctan(xˈ)
 
         return curvature, theta
@@ -41,6 +41,20 @@ class PureThermal:
         return image
 
     def show_image(self, image):
+        img, tem_max = self.get_image(image)
+
+        # apply colormap
+        img_col = cv2.applyColorMap(img.astype(np.uint8), cv2.COLORMAP_INFERNO)
+        # show image
+        cv2.namedWindow("Thermal", 0)
+        cv2.resizeWindow("Thermal", 300, 300)
+        cv2.imshow("Thermal", img_col)
+
+        # return the raw data "image" and the 8-bit data "img"
+        # print(img)
+        return img, tem_max / 100 - 273
+
+    def get_image(self, image):
         # print(image)
         image = np.array(image)
         img = np.array(image)
@@ -55,16 +69,9 @@ class PureThermal:
         # print(img)
         # print(img.shape)
 
-        # apply colormap
-        img_col = cv2.applyColorMap(img.astype(np.uint8), cv2.COLORMAP_INFERNO)
-        # show image
-        cv2.namedWindow("Thermal", 0)
-        cv2.resizeWindow("Thermal", 300, 300)
-        cv2.imshow("Thermal", img_col)
-
         # return the raw data "image" and the 8-bit data "img"
         # print(img)
-        return img, tem_max/100-273
+        return img, tem_max / 100 - 273
 
     def get_temperature(self, image, img):
         # Binary_map
@@ -147,13 +154,13 @@ class PureThermal:
     def get_data(self):
         image = self.grab_image(PureThermal.camera)
         if image is not None:
-            img, temp_max = self.show_image(image)
+            img, temp_max = self.get_image(image)
             temp = self.get_temperature(image, img)
             contours, x, y = self.get_contours(img)
             curve, theta = self.curvature(x, y)
             # print('contours', contours)
             # print("theta", theta / 0.04)
-            curveture = theta/0.04
+            curveture = theta / 0.04
             t_current = [temp_max, curveture]
             return t_current
 

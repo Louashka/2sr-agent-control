@@ -6,6 +6,12 @@ from pynput import keyboard
 import cv2
 import PureThermal
 import LUs
+import mainController
+
+portName = "COM4"
+controller = mainController.Controller(portName)
+
+s_current = [0, 0]
 
 # create objects
 thermal = PureThermal.PureThermal()
@@ -14,12 +20,6 @@ lu.start()
 
 flag = False
 expData = []
-
-START_DATA_FLOW = {keyboard.KeyCode.from_char('q')}
-STOP_AND_SAVE = {keyboard.KeyCode.from_char('s')}
-SHOW_IMAGE = {keyboard.KeyCode.from_char('i')}
-# The currently active modifiers
-current_keys = set()
 
 
 def get_data():
@@ -43,35 +43,73 @@ def get_data():
                     else:
                         expData.append(([timeStamp, 0, 0, 0, t_current[1][i]]))
                 print(expData)
-                break
+            break
+
+
+def manualControl(v, s):
+    global s_current
+    # print(s_current)
+    # print(s)
+    counter = 0
+
+    while True:
+        q_current = lu.getCurrentConfig()
+        if counter == 7:
+            break
+        counter += 1
+        if q_current is not None:
+
+            w = controller.wheelDrive(q_current, v, s)
+            controller.moveRobotM(w, s)
+            s_current = s
+
+            break
 
 
 def on_press(key):
-    global flag, expData
+    global expData
+    flag = False
     show_image_flag = False
 
-    if key in START_DATA_FLOW:
-        current_keys.add(key)
-        if key.char == 'q':
-            print('Recorded')
-            flag = True
+    v = [0] * 5
+    s = s_current
 
-    if key in STOP_AND_SAVE:
-        current_keys.add(key)
-        if key.char == 's':
-            print('Stop and save')
-            flag = False
-            columnNames = ["time", "temperature", "ka*", "kb*", "ka/b"]
-            df = pd.DataFrame(expData, columns=columnNames)
-            lu.stop()
-            thermal.stop()
-            print("save")
-            df.to_csv('expData.csv', index=False)
+    lu_speed = 0.1
 
-    if key in SHOW_IMAGE:
-        current_keys.add(key)
-        if key.char == 'i':
-            show_image_flag = True
+    if key == keyboard.KeyCode.from_char('q'):
+        print('Recorded')
+        flag = True
+
+    if key == keyboard.KeyCode.from_char('e'):
+        print('Stop and save')
+        columnNames = ["time", "temperature", "ka*", "kb*", "ka/b"]
+        df = pd.DataFrame(expData, columns=columnNames)
+        lu.stop()
+        thermal.stop()
+        print("save")
+        df.to_csv('exp_curvature_positive_1.csv', index=False)
+        cv2.destroyAllWindows()
+
+    if key == keyboard.KeyCode.from_char('i'):
+        show_image_flag = True
+
+    if key == keyboard.KeyCode.from_char('s'):
+        print("Segment 1 soft")
+        s[0] = 1
+
+    if key == keyboard.KeyCode.from_char('x'):
+        print("Segment 1 rigid")
+        s[0] = 0
+
+    if key == keyboard.Key.up:
+        print("forward")
+        v[0] = lu_speed
+
+    if key == keyboard.Key.down:
+        print("backward")
+        v[0] = -lu_speed
+
+    manualControl(v, s)
 
     if flag:
         get_data()
@@ -91,34 +129,30 @@ def on_press(key):
         cv2.imshow("Thermal", img_col)
         k = cv2.waitKey(1)
         if k == 27:
-            cv2.destroyAllWindows()
             show_image_flag = False
+            cv2.destroyAllWindows()
             break
 
 
 def on_release(key):
-    global current_keys
-    try:
-        current_keys.remove(key)
-        # controller.moveRobotM(np.aqrray([0, 0, 0, 0]), s_current, False, False)
-    except KeyError:
-        pass
-    cv2.destroyAllWindows()
+    controller.moveRobotM(np.array([0, 0, 0, 0]), s_current)
+
+    # cv2.destroyAllWindows()
 
 
-def data_collection():
-    global expData
-    q_current = lu.getCurrentConfig()  # q_current = [x, y, angle, ka, kb]
-    t_current = thermal.get_data()  # t_current = [temp_max, curveture]
+# def data_collection():
+#     global expData
+#     q_current = lu.getCurrentConfig()  # q_current = [x, y, angle, ka, kb]
+#     t_current = thermal.get_data()  # t_current = [temp_max, curveture]
 
-    timeStamp = datetime.now().strftime("%H:%M:%S")
-    for i in range(len(t_current[1])):
-        if i == 1:
-            expData.append(
-                [timeStamp, t_current[0], q_current[3], q_current[4], t_current[2]])
-        else:
-            expData.append(([timeStamp, 0, 0, 0, 0, t_current[1][i]]))
-    print(expData)
+#     timeStamp = datetime.now().strftime("%H:%M:%S")
+#     for i in range(len(t_current[1])):
+#         if i == 1:
+#             expData.append(
+#                 [timeStamp, t_current[0], q_current[3], q_current[4], t_current[2]])
+#         else:
+#             expData.append(([timeStamp, 0, 0, 0, 0, t_current[1][i]]))
+#     print(expData)
 
 
 while True:

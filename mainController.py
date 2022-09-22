@@ -156,10 +156,11 @@ class Controller:
 
         return th
 
-    def moveRobotM(self, w, s, flag, flag_cool):
+    def moveRobotM(self, w, s):
         w = w.round(3)
 
         commands = w.tolist() + s
+        # print(commands)
 
         self.sendData(commands)
 
