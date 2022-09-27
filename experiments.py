@@ -137,7 +137,7 @@ def manualControl(v, s):
                 flag = True
                 s_current = s
 
-            controller.moveRobotM(w, s, flag, flag_cool)
+            controller.moveRobotM(w, s)
 
             break
 
@@ -278,7 +278,7 @@ def on_release(key):
     global current_keys
     try:
         current_keys.remove(key)
-        controller.moveRobotM(np.array([0, 0, 0, 0]), s_current, False, False)
+        controller.moveRobotM(np.array([0, 0, 0, 0]), s_current)
     except KeyError:
         pass
 

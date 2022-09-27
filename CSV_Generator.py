@@ -20,6 +20,7 @@ lu.start()
 
 flag = False
 expData = []
+imgList = []
 
 
 def get_data():
@@ -36,13 +37,16 @@ def get_data():
             if t_current is not None:
                 # print(t_current)
                 timeStamp = datetime.now().strftime("%H:%M:%S")
-                for i in range(len(t_current[1])):
-                    if i == 0:
-                        expData.append(
-                            [timeStamp, t_current[0], q_current[3], q_current[4], t_current[1][0]])
-                    else:
-                        expData.append(([timeStamp, 0, 0, 0, t_current[1][i]]))
-                print(expData)
+                expData.append(
+                    [timeStamp, t_current[0], q_current[3], q_current[4]])
+                imgList.append(t_current[1])
+                # for i in range(len(t_current[1])):
+                #     if i == 0:
+                #         expData.append(
+                #             [timeStamp, t_current[0], q_current[3], q_current[4], t_current[1][0]])
+                #     else:
+                #         expData.append(([timeStamp, 0, 0, 0, t_current[1][i]]))
+                # print(expData)
             break
 
 
@@ -71,6 +75,8 @@ def on_press(key):
     flag = False
     show_image_flag = False
 
+    move = True
+
     v = [0] * 5
     s = s_current
 
@@ -82,13 +88,20 @@ def on_press(key):
 
     if key == keyboard.KeyCode.from_char('e'):
         print('Stop and save')
-        columnNames = ["time", "temperature", "ka*", "kb*", "ka/b"]
+        columnNames = ["time", "temperature", "k1", "k2"]
         df = pd.DataFrame(expData, columns=columnNames)
+        df.to_csv('ExpData/exp_negative_curvature.csv', index=False)
+
+        for i in range(len(imgList)):
+            fileName = 'ExpData/TempPhotos/expNegativeCurvature_' + \
+                str(i) + '.jpg'
+            cv2.imwrite(fileName, imgList[i])
+
         lu.stop()
         thermal.stop()
-        print("save")
-        df.to_csv('exp_curvature_positive_1.csv', index=False)
         cv2.destroyAllWindows()
+
+        move = False
 
     if key == keyboard.KeyCode.from_char('i'):
         show_image_flag = True
@@ -109,7 +122,8 @@ def on_press(key):
         print("backward")
         v[0] = -lu_speed
 
-    manualControl(v, s)
+    if move:
+        manualControl(v, s)
 
     if flag:
         get_data()
@@ -125,7 +139,7 @@ def on_press(key):
         img_col = cv2.applyColorMap(img.astype(np.uint8), cv2.COLORMAP_INFERNO)
         # show image
         cv2.namedWindow("Thermal", 0)
-        cv2.resizeWindow("Thermal", 300, 300)
+        # cv2.resizeWindow("Thermal", 300, 300)
         cv2.imshow("Thermal", img_col)
         k = cv2.waitKey(1)
         if k == 27:

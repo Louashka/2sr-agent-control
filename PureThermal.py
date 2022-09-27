@@ -3,6 +3,8 @@ from scipy.interpolate import UnivariateSpline
 from skimage import morphology
 import numpy as np
 import cv2
+from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
 
 
 class PureThermal:
@@ -24,10 +26,10 @@ class PureThermal:
         xˈˈ = fx.derivative(2)(t)
         yˈ = fy.derivative(1)(t)
         yˈˈ = fy.derivative(2)(t)
-        curvature = (xˈ * yˈˈ - yˈ * xˈˈ) / np.power(xˈ * 2 + yˈ * 2, 3 / 2)
+        curv = (xˈ * yˈˈ - yˈ * xˈˈ) / np.power(xˈ * 2 + yˈ * 2, 3 / 2)
         theta = np.arctan(xˈ)
 
-        return curvature, theta
+        return curv, theta
 
     def grab_image(self, camera):
         image = self.camera.grab()
@@ -47,7 +49,7 @@ class PureThermal:
         img_col = cv2.applyColorMap(img.astype(np.uint8), cv2.COLORMAP_INFERNO)
         # show image
         cv2.namedWindow("Thermal", 0)
-        cv2.resizeWindow("Thermal", 300, 300)
+        # cv2.resizeWindow("Thermal", 300, 300)
         cv2.imshow("Thermal", img_col)
 
         # return the raw data "image" and the 8-bit data "img"
@@ -68,6 +70,9 @@ class PureThermal:
         # img = 255 * (img - img.min()) / (img.max - img.min())
         # print(img)
         # print(img.shape)
+
+        img = cv2.rotate(img, cv2.ROTATE_180)
+        img = img[40:110, 30:100]
 
         # return the raw data "image" and the 8-bit data "img"
         # print(img)
@@ -94,6 +99,10 @@ class PureThermal:
         # return the temperature of the target area
         return temp
 
+    def objective(self, x, a, b, c):
+        # return (a * x) + (b * x**2) + (c * x**3) + (d * x**4) + (e * x**5) + f
+        return (a * x) + (b * x**2) + c
+
     def get_contours(self, img):
         # Binary_map
         ret, dst = cv2.threshold(img, 120, 255, cv2.THRESH_BINARY)
@@ -107,9 +116,50 @@ class PureThermal:
         binary = dilation
         binary[binary == 255] = 1
 
+        # scale_percent = 300  # percent of original size
+        # width = int(img.shape[1] * scale_percent / 100)
+        # height = int(img.shape[0] * scale_percent / 100)
+        # dim = (width, height)
+
+        # # resize image
+        # resized = cv2.resize(dst, dim, interpolation=cv2.INTER_LINEAR)
+
+        # x = np.nonzero(dst)[0]
+        # y = np.nonzero(dst)[1]
+
+        # # curve fit
+        # popt, _ = curve_fit(self.objective, y, -x)
+        # # summarize the parameter values
+        # a, b, c = popt
+
+        # # define a sequence of inputs between the smallest and largest known inputs
+        # x_line = np.arange(min(y), max(y), 1)
+        # # calculate the output for the range
+        # y_line = self.objective(x_line, a, b, c)
+
+        # fig = plt.figure()
+        # ax = fig.add_subplot()
+        # ax.set_aspect('equal', adjustable='box')
+        # ax.plot(y, -x, '.')
+        # ax.plot(x_line, y_line)
+        # fig.canvas.draw()
+
+        # img_vss = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8,
+        #                         sep='')
+        # img_vss = img_vss.reshape(
+        #     fig.canvas.get_width_height()[::-1] + (3,))
+
+        # # img is rgb, convert to opencv's default bgr
+        # img_vss = cv2.cvtColor(img_vss, cv2.COLOR_RGB2BGR)
+
+        # # display image with opencv or any operation you like
+        # cv2.imshow("plot", img_vss)
+
+        # result = np.column_stack((x_line, y_line))
+
         # cv2.namedWindow("Processed", 0)
-        # cv2.resizeWindow("Processed", 300, 300)
-        # cv2.imshow("Processed", dilation)
+        # # cv2.resizeWindow("Processed", 500, 500)
+        # cv2.imshow("Processed", dst)
 
         skel, distance = morphology.medial_axis(binary, return_distance=True)
         dist_on_skel = distance * skel
@@ -157,12 +207,15 @@ class PureThermal:
             img, temp_max = self.get_image(image)
             temp = self.get_temperature(image, img)
             contours, x, y = self.get_contours(img)
-            curve, theta = self.curvature(x, y)
+            k, theta = self.curvature(x, y)
+            # print(x)
+            # print(y)
             # print('contours', contours)
             # print("theta", theta / 0.04)
-            curveture = theta / 0.04
-            t_current = [temp_max, curveture]
+            k_new = theta / 0.04
+            t_current = [temp_max, img]
             return t_current
+
 
 # thermal = PureThermal()
 # while True:
@@ -172,10 +225,10 @@ class PureThermal:
 #         temp = thermal.get_temperature(image, img)
 #         contours, x, y = thermal.get_contours(img)
 #         curve, theta = thermal.curvature(x, y)
-#         print("Maximum tempeture: ", temp_max)
-#         print('contours', contours)
-#         print("theta", theta / 0.04)
-#
+#         # print("Maximum tempeture: ", temp_max)
+#         # print('contours', contours)
+#         # print("theta", theta / 0.04)
+
 #     if cv2.waitKey(10) == 27:
 #         break
 # cv2.destroyAllWindows()
