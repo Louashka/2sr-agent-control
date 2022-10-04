@@ -100,36 +100,6 @@ def extract_curves(images):
     return curves
 
 
-def get_curve(x, y):
-    curve = []
-
-    if np.abs(np.max(x) - np.min(x)) >= np.abs(np.max(y) - np.min(x)):
-        start = int(np.min(x))
-        end = int(np.max(x))
-
-        start_ind = np.where(x == start)[0][0]
-        end_ind = np.where(x == end)[0][0]
-
-        for i in range(start, end+1):
-            indx = np.where(x == i)[0]
-            if y[start_ind] > y[end_ind]:
-                j = np.min(y[indx])
-            else:
-                j = np.max(y[indx])
-            curve.append([i, j])
-    else:
-        start = int(np.min(y))
-        end = int(np.max(y))
-
-        for j in range(start, end + 1):
-            indx = np.where(y == j)[0]
-            i = np.min(x[indx])
-            curve.append([i, j])
-
-    curve = curve
-
-    return curve
-
 def str_to_points(st):
     arr = ast.literal_eval(st)
 
@@ -180,7 +150,7 @@ def get_curvature(curve, k, smoothing = 4):
 if __name__ == "__main__":
 
     images = read_images()
-    # df = read_csv(images)
+    df = read_csv(images)
 
     csv_file = glob.glob(os.path.join(path + '/ExpData/', 'exp_curvature.csv'))
     df = pd.read_csv(csv_file[0], index_col = None, header = 0)
@@ -189,6 +159,8 @@ if __name__ == "__main__":
     # print(df.therm_k.iloc[2])
     df['therm_k_mean'] = df.apply(lambda row: np.mean(row['therm_k']), axis = 1)
     df['therm_k_std'] = df.apply(lambda row: np.std(row['therm_k']), axis = 1)
+
+    df.to_csv(csv_file[0], index = False)
 
     x = df.index.values
 
