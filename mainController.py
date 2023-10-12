@@ -116,11 +116,11 @@ class Controller:
             b0_q_w = self.getWheelPosition(i, k[i])
             tau = b0_q_w[0] * np.sin(b0_q_w[2]) - \
                 b0_q_w[1] * np.cos(b0_q_w[2])
-            V_[i, :] = [flag_soft * int(i == 0), -flag_soft * int(
-                i == 2), flag_rigid * np.cos(b0_q_w[2]), flag_rigid * np.sin(b0_q_w[2]), flag_rigid * tau]
+            V_[i, :] = [-flag_soft * int(i == 0 or i == 1), flag_soft * int(
+                i == 2 or i == 3), flag_rigid * np.cos(b0_q_w[2]), flag_rigid * np.sin(b0_q_w[2]), flag_rigid * tau]
 
         V = 1 / globals_.WHEEL_R * V_
-        w = np.matmul(V, v)
+        w = 0.9 * np.matmul(V, v)
 
         return w.round(3)
 
@@ -156,11 +156,12 @@ class Controller:
 
         return th
 
-    def moveRobotM(self, w, s):
+    def moveRobotM(self, w, s, agent_id):
         w = w.round(3)
+        w = [0, 0, 0, 6]
 
-        commands = w.tolist() + s
-        # print(commands)
+        commands = w + s + [agent_id]
+        print(commands)
 
         self.sendData(commands)
 
@@ -259,9 +260,22 @@ class Controller:
 
 # if __name__ == "__main__":
 
-#     portName = "COM4"
+#     portName = "/dev/tty.usbserial-0001"
 #     mainController = Controller(portName)
-#     # mainController.openConnection()
+#     mainController.openConnection()
+
+#     mainController.moveRobotM(np.array([0, 0, 0, 0]), [0, 0], 2)
+
+    # flag = True
+
+    # while True:
+    #     if flag:
+    #         mainController.moveRobotM(np.array([-4, 0, 4, 0]), [0, 0], 1)
+    #         flag = False
+    #     else:
+    #         mainController.moveRobotM(np.array([-4, 0, 4, 0]), [0, 0], 2)
+    #         flag = True
+
 
 #     # SIMULATION PARAMETERS
 

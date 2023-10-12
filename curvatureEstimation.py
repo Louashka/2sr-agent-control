@@ -160,7 +160,7 @@ if __name__ == "__main__":
     df['therm_k_mean'] = df.apply(lambda row: np.mean(row['therm_k']), axis = 1)
     df['therm_k_std'] = df.apply(lambda row: np.std(row['therm_k']), axis = 1)
 
-    df.to_csv(csv_file[0], index = False)
+    # df.to_csv(csv_file[0], index = False)
 
     x = df.index.values
 
