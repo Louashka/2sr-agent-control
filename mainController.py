@@ -158,9 +158,9 @@ class Controller:
 
     def moveRobotM(self, w, s, agent_id):
         w = w.round(3)
-        w = [0, 0, 0, 6]
 
-        commands = w + s + [agent_id]
+        commands = w.tolist() + s + [agent_id]
+        # commands = [9, 9, -9, -9] + s + [agent_id]
         print(commands)
 
         self.sendData(commands)

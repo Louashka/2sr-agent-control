@@ -27,7 +27,7 @@ BOTH_RIGID = {keyboard.Key.down, keyboard.KeyCode.from_char('x')}
 current_keys = set()
 s_current = [0, 0]
 s = [0, 0]
-agent_id = 2
+agent_id = 1
 
 
 def manualControl(v, s, agent_id):
@@ -70,7 +70,7 @@ def on_press(key):
     v = [0] * 5
 
     omni_speed = 0.1
-    rotation_speed = 0.7
+    rotation_speed = 1
     lu_speed = 0.1
 
     if key in ROTATION_LEFT:
